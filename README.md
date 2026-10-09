@@ -40,3 +40,7 @@ Not yet covered: continuous/eventsource `_changes` (streaming), `_scheduler`,
 Every change here should come with a scenario in
 `couchdb-sdk-generator/conformance/specs` so all SDKs are tested against it.
 See the generator README for spec patterns that generate broken code.
+
+## License
+
+Apache License 2.0. See [LICENSE](LICENSE) and [NOTICE](NOTICE).
