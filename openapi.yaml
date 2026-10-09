@@ -4,7 +4,7 @@ info:
   description: |
     OpenAPI description of the Apache CouchDB 3.x HTTP API.
     This is the single source of truth for all generated CouchDB SDKs.
-  version: 0.3.0
+  version: 0.4.0
   license:
     name: Apache-2.0
     url: https://www.apache.org/licenses/LICENSE-2.0
@@ -457,8 +457,8 @@ paths:
       - { $ref: "#/components/parameters/Db" }
       - name: feed
         in: query
-        description: "`continuous` and `eventsource` stream; SDKs follow the feed with `longpoll`."
-        schema: { type: string, enum: [normal, longpoll], default: normal }
+        description: "`normal`/`longpoll` return one JSON object; `continuous` streams newline-delimited change objects. `eventsource` is not supported."
+        schema: { type: string, enum: [normal, longpoll, continuous], default: normal }
       - name: since
         in: query
         description: Start after this sequence; `now` skips existing changes.
@@ -506,7 +506,7 @@ paths:
     get:
       tags: [changes]
       operationId: getChanges
-      summary: Database changes feed (normal or longpoll)
+      summary: Database changes feed (normal, longpoll or continuous)
       responses:
         "200":
           description: Changes
