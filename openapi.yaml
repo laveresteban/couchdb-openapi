@@ -4,7 +4,7 @@ info:
   description: |
     OpenAPI description of the Apache CouchDB 3.x HTTP API.
     This is the single source of truth for all generated CouchDB SDKs.
-  version: 0.2.0
+  version: 0.3.0
   license:
     name: Apache-2.0
     url: https://www.apache.org/licenses/LICENSE-2.0
@@ -348,6 +348,14 @@ paths:
         - name: conflicts
           in: query
           schema: { type: boolean, default: false }
+        - name: revs
+          in: query
+          description: Include the revision history as `_revisions`
+          schema: { type: boolean, default: false }
+        - name: latest
+          in: query
+          description: With `rev`, return the latest leaf revision on that branch
+          schema: { type: boolean, default: false }
       responses:
         "200":
           description: The document
@@ -466,6 +474,8 @@ paths:
         - name: since
           in: query
           schema: { type: string, default: "0" }
+        - { $ref: "#/components/parameters/ChangesStyle" }
+        - { $ref: "#/components/parameters/Heartbeat" }
         - name: include_docs
           in: query
           schema: { type: boolean, default: false }
@@ -481,6 +491,141 @@ paths:
           content:
             application/json:
               schema: { $ref: "#/components/schemas/ChangesResult" }
+        "404": { $ref: "#/components/responses/Error" }
+    post:
+      tags: [changes]
+      operationId: postChanges
+      summary: Filtered changes feed (by document ids or selector)
+      parameters:
+        - name: filter
+          in: query
+          required: true
+          schema: { type: string, enum: [_doc_ids, _selector] }
+        - name: feed
+          in: query
+          schema: { type: string, enum: [normal, longpoll], default: normal }
+        - name: since
+          in: query
+          schema: { type: string, default: "0" }
+        - name: include_docs
+          in: query
+          schema: { type: boolean, default: false }
+        - { $ref: "#/components/parameters/Limit" }
+        - name: timeout
+          in: query
+          description: Longpoll timeout in milliseconds
+          schema: { type: integer, minimum: 0 }
+        - { $ref: "#/components/parameters/ChangesStyle" }
+        - { $ref: "#/components/parameters/Heartbeat" }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/ChangesFilter" }
+      responses:
+        "200":
+          description: Changes
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/ChangesResult" }
+        "400": { $ref: "#/components/responses/Error" }
+        "404": { $ref: "#/components/responses/Error" }
+
+  /{db}/_revs_diff:
+    parameters:
+      - { $ref: "#/components/parameters/Db" }
+    post:
+      tags: [replication]
+      operationId: postRevsDiff
+      summary: Find which revisions the database does not have
+      description: Used by replicators to skip revisions the target already stores.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/RevsDiffRequest" }
+      responses:
+        "200":
+          description: Missing revisions, keyed by document id
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/RevsDiffResult" }
+        "401": { $ref: "#/components/responses/Error" }
+
+  /{db}/_bulk_get:
+    parameters:
+      - { $ref: "#/components/parameters/Db" }
+    post:
+      tags: [replication]
+      operationId: postBulkGet
+      summary: Fetch many documents and revisions in one request
+      parameters:
+        - name: revs
+          in: query
+          description: Include `_revisions` in each returned document
+          schema: { type: boolean, default: false }
+        - name: latest
+          in: query
+          schema: { type: boolean, default: false }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/BulkGetRequest" }
+      responses:
+        "200":
+          description: One result per requested document
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/BulkGetResult" }
+        "401": { $ref: "#/components/responses/Error" }
+
+  /{db}/_local/{docid}:
+    parameters:
+      - { $ref: "#/components/parameters/Db" }
+      - { $ref: "#/components/parameters/DocId" }
+    get:
+      tags: [replication]
+      operationId: getLocalDocument
+      summary: Get a local (non-replicated) document
+      description: Local documents hold replication checkpoints. They are not in `_changes` or `_all_docs`.
+      responses:
+        "200":
+          description: The local document
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Document" }
+        "404": { $ref: "#/components/responses/Error" }
+    put:
+      tags: [replication]
+      operationId: putLocalDocument
+      summary: Create or update a local document
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/Document" }
+      responses:
+        "201":
+          description: Local document written
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/DocumentResult" }
+        "409": { $ref: "#/components/responses/Error" }
+    delete:
+      tags: [replication]
+      operationId: deleteLocalDocument
+      summary: Delete a local document
+      parameters:
+        - name: rev
+          in: query
+          schema: { type: string }
+      responses:
+        "200":
+          description: Local document deleted
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/DocumentResult" }
         "404": { $ref: "#/components/responses/Error" }
 
   /{db}/_security:
@@ -713,6 +858,16 @@ components:
       name: limit
       in: query
       schema: { type: integer, minimum: 0 }
+    ChangesStyle:
+      name: style
+      in: query
+      description: "`all_docs` lists every leaf revision, including conflicts"
+      schema: { type: string, enum: [main_only, all_docs], default: main_only }
+    Heartbeat:
+      name: heartbeat
+      in: query
+      description: Milliseconds between empty lines sent to keep a longpoll alive
+      schema: { type: integer, minimum: 0 }
     Skip:
       name: skip
       in: query
@@ -844,10 +999,34 @@ components:
         _deleted: { type: boolean }
         _attachments:
           type: object
-          additionalProperties: true
+          additionalProperties: { $ref: "#/components/schemas/Attachment" }
         _conflicts:
           type: array
           items: { type: string }
+        _revisions: { $ref: "#/components/schemas/Revisions" }
+
+    Revisions:
+      type: object
+      description: Revision history, newest first. Full rev ids are `{start - i}-{ids[i]}`.
+      required: [start, ids]
+      properties:
+        start: { type: integer }
+        ids:
+          type: array
+          items: { type: string }
+
+    Attachment:
+      type: object
+      properties:
+        content_type: { type: string }
+        data: { type: string, format: byte, description: Base64 body (inline only) }
+        digest: { type: string }
+        length: { type: integer }
+        revpos: { type: integer }
+        stub: { type: boolean }
+        follows: { type: boolean }
+        encoding: { type: string }
+        encoded_length: { type: integer }
 
     DocumentResult:
       type: object
@@ -1116,3 +1295,74 @@ components:
           items:
             type: object
             additionalProperties: true
+
+    RevsDiffRequest:
+      type: object
+      description: Document id mapped to the revisions to check
+      additionalProperties:
+        type: array
+        items: { type: string }
+
+    RevsDiffResult:
+      type: object
+      description: Document id mapped to revisions the database is missing
+      additionalProperties:
+        type: object
+        properties:
+          missing:
+            type: array
+            items: { type: string }
+          possible_ancestors:
+            type: array
+            items: { type: string }
+
+    BulkGetRequest:
+      type: object
+      required: [docs]
+      properties:
+        docs:
+          type: array
+          items:
+            type: object
+            required: [id]
+            properties:
+              id: { type: string }
+              rev: { type: string }
+              atts_since:
+                type: array
+                items: { type: string }
+
+    BulkGetResult:
+      type: object
+      required: [results]
+      properties:
+        results:
+          type: array
+          items:
+            type: object
+            properties:
+              id: { type: string }
+              docs:
+                type: array
+                items:
+                  type: object
+                  properties:
+                    ok: { $ref: "#/components/schemas/Document" }
+                    error:
+                      type: object
+                      properties:
+                        id: { type: string }
+                        rev: { type: string }
+                        error: { type: string }
+                        reason: { type: string }
+
+    ChangesFilter:
+      type: object
+      description: Use `doc_ids` with `filter=_doc_ids`, `selector` with `filter=_selector`.
+      properties:
+        doc_ids:
+          type: array
+          items: { type: string }
+        selector:
+          type: object
+          additionalProperties: true
