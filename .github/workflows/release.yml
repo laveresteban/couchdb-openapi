@@ -1,0 +1,15 @@
+# On a spec tag (v1.2.3), tell the generator repo to regenerate every SDK.
+name: release
+on:
+  push:
+    tags: ["v*"]
+jobs:
+  notify-generator:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: peter-evans/repository-dispatch@v3
+        with:
+          token: ${{ secrets.SDK_BOT_TOKEN }}
+          repository: ${{ github.repository_owner }}/couchdb-sdk-generator
+          event-type: spec-released
+          client-payload: '{"spec_ref": "${{ github.ref_name }}"}'

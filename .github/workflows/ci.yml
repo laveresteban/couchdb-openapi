@@ -1,0 +1,26 @@
+name: ci
+on:
+  pull_request:
+  push:
+    branches: [main]
+jobs:
+  lint:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with: { node-version: 20 }
+      - run: npx --yes @stoplight/spectral-cli@6 lint openapi.yaml --fail-severity=warn
+      - run: npx --yes @redocly/cli@1 lint openapi.yaml
+  breaking-changes:
+    if: github.event_name == 'pull_request'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with: { fetch-depth: 0 }
+      - run: git show origin/${{ github.base_ref }}:openapi.yaml > base.yaml
+      - uses: oasdiff/oasdiff-action/breaking@main
+        with:
+          base: base.yaml
+          revision: openapi.yaml
+          fail-on: ERR
