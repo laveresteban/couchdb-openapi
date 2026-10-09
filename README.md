@@ -31,5 +31,12 @@ npx @stoplight/spectral-cli@6 lint openapi.yaml
 ## Coverage
 
 Server, `_session` auth, databases, documents, `_bulk_docs`, `_all_docs`,
-Mango `_find`/`_index`, and MapReduce views. Not yet covered: attachments,
-`_changes`, replication, `_security`, partitions, `_scheduler`, `_node`.
+Mango `_find`/`_index`, design documents and views, attachments, `_changes`
+(normal/longpoll), `_replicate`, `_security`, and partitioned queries.
+
+Not yet covered: continuous/eventsource `_changes` (streaming), `_scheduler`,
+`_node`/config, `_purge`, `_revs_diff`, `_explain`, search.
+
+Every change here should come with a scenario in
+`couchdb-sdk-generator/conformance/specs` so all SDKs are tested against it.
+See the generator README for spec patterns that generate broken code.

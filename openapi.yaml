@@ -4,7 +4,7 @@ info:
   description: |
     OpenAPI description of the Apache CouchDB 3.x HTTP API.
     This is the single source of truth for all generated CouchDB SDKs.
-  version: 0.1.0
+  version: 0.2.0
   license:
     name: Apache-2.0
     url: https://www.apache.org/licenses/LICENSE-2.0
@@ -18,11 +18,27 @@ security:
   - cookieAuth: []
 tags:
   - name: server
+    description: Server-level information and utilities
   - name: authentication
+    description: Cookie session authentication
   - name: databases
+    description: Create, inspect and delete databases
   - name: documents
+    description: Read and write JSON documents
   - name: design-documents
+    description: Design documents and MapReduce views
   - name: query
+    description: All-docs and Mango queries and indexes
+  - name: changes
+    description: Database changes feed
+  - name: attachments
+    description: Binary attachments on documents
+  - name: replication
+    description: One-off and continuous replication
+  - name: security
+    description: Per-database admins and members
+  - name: partitions
+    description: Queries scoped to a partition of a partitioned database
 
 paths:
   /:
@@ -70,6 +86,7 @@ paths:
               schema:
                 type: array
                 items: { type: string }
+        "401": { $ref: "#/components/responses/Error" }
 
   /_uuids:
     get:
@@ -86,6 +103,7 @@ paths:
           content:
             application/json:
               schema: { $ref: "#/components/schemas/UuidsResult" }
+        "401": { $ref: "#/components/responses/Error" }
 
   /_session:
     get:
@@ -98,6 +116,7 @@ paths:
           content:
             application/json:
               schema: { $ref: "#/components/schemas/SessionInformation" }
+        "401": { $ref: "#/components/responses/Error" }
     post:
       tags: [authentication]
       operationId: postSession
@@ -126,6 +145,7 @@ paths:
           content:
             application/json:
               schema: { $ref: "#/components/schemas/Ok" }
+        "401": { $ref: "#/components/responses/Error" }
 
   /{db}:
     parameters:
@@ -235,6 +255,7 @@ paths:
           content:
             application/json:
               schema: { $ref: "#/components/schemas/AllDocsResult" }
+        "401": { $ref: "#/components/responses/Error" }
 
   /{db}/_bulk_docs:
     parameters:
@@ -256,6 +277,7 @@ paths:
               schema:
                 type: array
                 items: { $ref: "#/components/schemas/DocumentResult" }
+        "401": { $ref: "#/components/responses/Error" }
 
   /{db}/_find:
     parameters:
@@ -290,6 +312,7 @@ paths:
           content:
             application/json:
               schema: { $ref: "#/components/schemas/IndexesInformation" }
+        "401": { $ref: "#/components/responses/Error" }
     post:
       tags: [query]
       operationId: postIndex
@@ -305,6 +328,7 @@ paths:
           content:
             application/json:
               schema: { $ref: "#/components/schemas/IndexResult" }
+        "401": { $ref: "#/components/responses/Error" }
 
   /{db}/{docid}:
     parameters:
@@ -383,11 +407,7 @@ paths:
   /{db}/_design/{ddoc}/_view/{view}:
     parameters:
       - { $ref: "#/components/parameters/Db" }
-      - name: ddoc
-        in: path
-        required: true
-        description: Design document name without the `_design/` prefix
-        schema: { type: string }
+      - { $ref: "#/components/parameters/Ddoc" }
       - name: view
         in: path
         required: true
@@ -408,6 +428,242 @@ paths:
             application/json:
               schema: { $ref: "#/components/schemas/ViewResult" }
         "404": { $ref: "#/components/responses/Error" }
+
+  /_replicate:
+    post:
+      tags: [replication]
+      operationId: postReplicate
+      summary: Run or cancel a one-off replication
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/ReplicationRequest" }
+      responses:
+        "200":
+          description: Replication finished
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/ReplicationResult" }
+        "202":
+          description: Continuous replication started
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/ReplicationResult" }
+        "404": { $ref: "#/components/responses/Error" }
+
+  /{db}/_changes:
+    parameters:
+      - { $ref: "#/components/parameters/Db" }
+    get:
+      tags: [changes]
+      operationId: getChanges
+      summary: Database changes feed (normal or longpoll)
+      parameters:
+        - name: feed
+          in: query
+          schema: { type: string, enum: [normal, longpoll], default: normal }
+        - name: since
+          in: query
+          schema: { type: string, default: "0" }
+        - name: include_docs
+          in: query
+          schema: { type: boolean, default: false }
+        - { $ref: "#/components/parameters/Limit" }
+        - name: timeout
+          in: query
+          description: Longpoll timeout in milliseconds
+          schema: { type: integer, minimum: 0 }
+        - { $ref: "#/components/parameters/Descending" }
+      responses:
+        "200":
+          description: Changes
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/ChangesResult" }
+        "404": { $ref: "#/components/responses/Error" }
+
+  /{db}/_security:
+    parameters:
+      - { $ref: "#/components/parameters/Db" }
+    get:
+      tags: [security]
+      operationId: getSecurity
+      summary: Get the database security object
+      responses:
+        "200":
+          description: Security object
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Security" }
+        "401": { $ref: "#/components/responses/Error" }
+    put:
+      tags: [security]
+      operationId: putSecurity
+      summary: Replace the database security object
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/Security" }
+      responses:
+        "200":
+          description: Security updated
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Ok" }
+        "401": { $ref: "#/components/responses/Error" }
+
+  /{db}/_design/{ddoc}:
+    parameters:
+      - { $ref: "#/components/parameters/Db" }
+      - { $ref: "#/components/parameters/Ddoc" }
+    get:
+      tags: [design-documents]
+      operationId: getDesignDocument
+      summary: Get a design document
+      responses:
+        "200":
+          description: The design document
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/DesignDocument" }
+        "404": { $ref: "#/components/responses/Error" }
+    put:
+      tags: [design-documents]
+      operationId: putDesignDocument
+      summary: Create or update a design document
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/DesignDocument" }
+      responses:
+        "201":
+          description: Written
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/DocumentResult" }
+        "409": { $ref: "#/components/responses/Error" }
+    delete:
+      tags: [design-documents]
+      operationId: deleteDesignDocument
+      summary: Delete a design document
+      parameters:
+        - name: rev
+          in: query
+          required: true
+          schema: { type: string }
+      responses:
+        "200":
+          description: Deleted
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/DocumentResult" }
+        "404": { $ref: "#/components/responses/Error" }
+
+  /{db}/_partition/{partition}/_all_docs:
+    parameters:
+      - { $ref: "#/components/parameters/Db" }
+      - { $ref: "#/components/parameters/Partition" }
+    post:
+      tags: [partitions]
+      operationId: postPartitionAllDocs
+      summary: Query all documents in one partition
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/AllDocsQuery" }
+      responses:
+        "200":
+          description: Rows
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/AllDocsResult" }
+        "401": { $ref: "#/components/responses/Error" }
+
+  /{db}/_partition/{partition}/_find:
+    parameters:
+      - { $ref: "#/components/parameters/Db" }
+      - { $ref: "#/components/parameters/Partition" }
+    post:
+      tags: [partitions]
+      operationId: postPartitionFind
+      summary: Mango query within one partition
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/FindQuery" }
+      responses:
+        "200":
+          description: Matching documents
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/FindResult" }
+        "401": { $ref: "#/components/responses/Error" }
+
+  /{db}/{docid}/{attname}:
+    parameters:
+      - { $ref: "#/components/parameters/Db" }
+      - { $ref: "#/components/parameters/DocId" }
+      - name: attname
+        in: path
+        required: true
+        schema: { type: string }
+    get:
+      tags: [attachments]
+      operationId: getAttachment
+      summary: Download an attachment
+      parameters:
+        - name: rev
+          in: query
+          schema: { type: string }
+      responses:
+        "200":
+          description: Attachment bytes
+          content:
+            application/octet-stream:
+              schema: { type: string, format: binary }
+        "404": { $ref: "#/components/responses/Error" }
+    put:
+      tags: [attachments]
+      operationId: putAttachment
+      summary: Upload an attachment
+      parameters:
+        - name: rev
+          in: query
+          description: Current document revision (omit to create the document)
+          schema: { type: string }
+      requestBody:
+        required: true
+        content:
+          application/octet-stream:
+            schema: { type: string, format: binary }
+      responses:
+        "201":
+          description: Attachment stored
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/DocumentResult" }
+        "409": { $ref: "#/components/responses/Error" }
+    delete:
+      tags: [attachments]
+      operationId: deleteAttachment
+      summary: Delete an attachment
+      parameters:
+        - name: rev
+          in: query
+          required: true
+          schema: { type: string }
+      responses:
+        "200":
+          description: Attachment deleted
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/DocumentResult" }
+        "409": { $ref: "#/components/responses/Error" }
 
 components:
   securitySchemes:
@@ -430,6 +686,17 @@ components:
         pattern: "^[a-z][a-z0-9_$()+/-]*$"
     DocId:
       name: docid
+      in: path
+      required: true
+      schema: { type: string }
+    Ddoc:
+      name: ddoc
+      in: path
+      required: true
+      description: Design document name without the `_design/` prefix
+      schema: { type: string }
+    Partition:
+      name: partition
       in: path
       required: true
       schema: { type: string }
@@ -647,11 +914,10 @@ components:
           items: { type: string }
         sort:
           type: array
+          description: 'Field/direction pairs, e.g. `[{"age": "desc"}]`. Direction is `asc` or `desc`.'
           items:
             type: object
-            additionalProperties:
-              type: string
-              enum: [asc, desc]
+            additionalProperties: { type: string }
         limit: { type: integer, minimum: 0 }
         skip: { type: integer, minimum: 0 }
         use_index:
@@ -756,3 +1022,97 @@ components:
               key: {}
               value: {}
               doc: { $ref: "#/components/schemas/Document" }
+
+    ChangesResult:
+      type: object
+      required: [results, last_seq]
+      properties:
+        last_seq: { type: string }
+        pending: { type: integer }
+        results:
+          type: array
+          items:
+            type: object
+            properties:
+              id: { type: string }
+              seq: { type: string }
+              deleted: { type: boolean }
+              changes:
+                type: array
+                items:
+                  type: object
+                  properties:
+                    rev: { type: string }
+              doc: { $ref: "#/components/schemas/Document" }
+
+    SecurityMembers:
+      type: object
+      properties:
+        names:
+          type: array
+          items: { type: string }
+        roles:
+          type: array
+          items: { type: string }
+
+    Security:
+      type: object
+      properties:
+        admins: { $ref: "#/components/schemas/SecurityMembers" }
+        members: { $ref: "#/components/schemas/SecurityMembers" }
+
+    DesignDocument:
+      type: object
+      additionalProperties: true
+      properties:
+        _id: { type: string }
+        _rev: { type: string }
+        language: { type: string, default: javascript }
+        views:
+          type: object
+          additionalProperties:
+            type: object
+            properties:
+              map: { type: string }
+              reduce: { type: string }
+        options:
+          type: object
+          additionalProperties: true
+
+    ReplicationRequest:
+      type: object
+      required: [source, target]
+      properties:
+        source:
+          description: Database URL, or an object with url and auth
+          type: object
+          additionalProperties: true
+          properties:
+            url: { type: string }
+        target:
+          type: object
+          additionalProperties: true
+          properties:
+            url: { type: string }
+        create_target: { type: boolean }
+        continuous: { type: boolean }
+        cancel: { type: boolean }
+        doc_ids:
+          type: array
+          items: { type: string }
+        selector:
+          type: object
+          additionalProperties: true
+
+    ReplicationResult:
+      type: object
+      properties:
+        ok: { type: boolean }
+        session_id: { type: string }
+        source_last_seq: { type: string }
+        _local_id: { type: string }
+        history:
+          type: array
+          items:
+            type: object
+            additionalProperties: true

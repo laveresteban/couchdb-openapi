@@ -1,0 +1,4 @@
+extends: [recommended]
+rules:
+  # localhost:5984 is the real default for CouchDB, not a placeholder.
+  no-server-example.com: off
