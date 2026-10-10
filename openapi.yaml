@@ -4,7 +4,7 @@ info:
   description: |
     OpenAPI description of the Apache CouchDB 3.x HTTP API.
     This is the single source of truth for all generated CouchDB SDKs.
-  version: 0.4.0
+  version: 0.5.0
   license:
     name: Apache-2.0
     url: https://www.apache.org/licenses/LICENSE-2.0
@@ -50,9 +50,12 @@ paths:
       responses:
         "200":
           description: Server information
+          headers:
+            X-Couch-Request-ID: { $ref: "#/components/headers/X-Couch-Request-ID" }
           content:
             application/json:
               schema: { $ref: "#/components/schemas/ServerInformation" }
+        "400": { $ref: "#/components/responses/Error" }
 
   /_up:
     get:
@@ -63,6 +66,8 @@ paths:
       responses:
         "200":
           description: Server is up
+          headers:
+            X-Couch-Request-ID: { $ref: "#/components/headers/X-Couch-Request-ID" }
           content:
             application/json:
               schema: { $ref: "#/components/schemas/UpInformation" }
@@ -81,12 +86,15 @@ paths:
       responses:
         "200":
           description: Database names
+          headers:
+            X-Couch-Request-ID: { $ref: "#/components/headers/X-Couch-Request-ID" }
           content:
             application/json:
               schema:
                 type: array
                 items: { type: string }
         "401": { $ref: "#/components/responses/Error" }
+        "403": { $ref: "#/components/responses/Error" }
 
   /_uuids:
     get:
@@ -100,10 +108,14 @@ paths:
       responses:
         "200":
           description: UUIDs
+          headers:
+            X-Couch-Request-ID: { $ref: "#/components/headers/X-Couch-Request-ID" }
           content:
             application/json:
               schema: { $ref: "#/components/schemas/UuidsResult" }
         "401": { $ref: "#/components/responses/Error" }
+        "403": { $ref: "#/components/responses/Error" }
+        "400": { $ref: "#/components/responses/Error" }
 
   /_session:
     get:
@@ -113,10 +125,13 @@ paths:
       responses:
         "200":
           description: Session info
+          headers:
+            X-Couch-Request-ID: { $ref: "#/components/headers/X-Couch-Request-ID" }
           content:
             application/json:
               schema: { $ref: "#/components/schemas/SessionInformation" }
         "401": { $ref: "#/components/responses/Error" }
+        "403": { $ref: "#/components/responses/Error" }
     post:
       tags: [authentication]
       operationId: postSession
@@ -130,11 +145,14 @@ paths:
       responses:
         "200":
           description: Session created; AuthSession cookie is set
+          headers:
+            X-Couch-Request-ID: { $ref: "#/components/headers/X-Couch-Request-ID" }
           content:
             application/json:
               schema: { $ref: "#/components/schemas/SessionCreated" }
         "401":
           $ref: "#/components/responses/Error"
+        "400": { $ref: "#/components/responses/Error" }
     delete:
       tags: [authentication]
       operationId: deleteSession
@@ -142,10 +160,13 @@ paths:
       responses:
         "200":
           description: Session ended
+          headers:
+            X-Couch-Request-ID: { $ref: "#/components/headers/X-Couch-Request-ID" }
           content:
             application/json:
               schema: { $ref: "#/components/schemas/Ok" }
         "401": { $ref: "#/components/responses/Error" }
+        "403": { $ref: "#/components/responses/Error" }
 
   /{db}:
     parameters:
@@ -157,6 +178,8 @@ paths:
       responses:
         "200": { description: Database exists }
         "404": { description: Database does not exist }
+        "401": { $ref: "#/components/responses/Error" }
+        "403": { $ref: "#/components/responses/Error" }
     get:
       tags: [databases]
       operationId: getDatabaseInformation
@@ -164,11 +187,15 @@ paths:
       responses:
         "200":
           description: Database information
+          headers:
+            X-Couch-Request-ID: { $ref: "#/components/headers/X-Couch-Request-ID" }
           content:
             application/json:
               schema: { $ref: "#/components/schemas/DatabaseInformation" }
         "404":
           $ref: "#/components/responses/Error"
+        "401": { $ref: "#/components/responses/Error" }
+        "403": { $ref: "#/components/responses/Error" }
     put:
       tags: [databases]
       operationId: putDatabase
@@ -188,17 +215,22 @@ paths:
       responses:
         "201":
           description: Database created
+          headers:
+            X-Couch-Request-ID: { $ref: "#/components/headers/X-Couch-Request-ID" }
           content:
             application/json:
               schema: { $ref: "#/components/schemas/Ok" }
         "202":
           description: Database created, quorum not met
+          headers:
+            X-Couch-Request-ID: { $ref: "#/components/headers/X-Couch-Request-ID" }
           content:
             application/json:
               schema: { $ref: "#/components/schemas/Ok" }
         "400": { $ref: "#/components/responses/Error" }
         "401": { $ref: "#/components/responses/Error" }
         "412": { $ref: "#/components/responses/Error" }
+        "403": { $ref: "#/components/responses/Error" }
     delete:
       tags: [databases]
       operationId: deleteDatabase
@@ -206,15 +238,21 @@ paths:
       responses:
         "200":
           description: Database deleted
+          headers:
+            X-Couch-Request-ID: { $ref: "#/components/headers/X-Couch-Request-ID" }
           content:
             application/json:
               schema: { $ref: "#/components/schemas/Ok" }
         "202":
           description: Database deleted, quorum not met
+          headers:
+            X-Couch-Request-ID: { $ref: "#/components/headers/X-Couch-Request-ID" }
           content:
             application/json:
               schema: { $ref: "#/components/schemas/Ok" }
         "404": { $ref: "#/components/responses/Error" }
+        "401": { $ref: "#/components/responses/Error" }
+        "403": { $ref: "#/components/responses/Error" }
     post:
       tags: [documents]
       operationId: postDocument
@@ -227,19 +265,48 @@ paths:
       responses:
         "201":
           description: Document created
+          headers:
+            X-Couch-Request-ID: { $ref: "#/components/headers/X-Couch-Request-ID" }
           content:
             application/json:
               schema: { $ref: "#/components/schemas/DocumentResult" }
         "202":
           description: Document accepted
+          headers:
+            X-Couch-Request-ID: { $ref: "#/components/headers/X-Couch-Request-ID" }
           content:
             application/json:
               schema: { $ref: "#/components/schemas/DocumentResult" }
         "409": { $ref: "#/components/responses/Error" }
+        "401": { $ref: "#/components/responses/Error" }
+        "403": { $ref: "#/components/responses/Error" }
+        "400": { $ref: "#/components/responses/Error" }
 
   /{db}/_all_docs:
     parameters:
       - { $ref: "#/components/parameters/Db" }
+    get:
+      tags: [query]
+      operationId: getAllDocs
+      summary: Query all documents (GET form; keys are JSON-encoded)
+      parameters:
+        - { $ref: "#/components/parameters/IncludeDocs" }
+        - { $ref: "#/components/parameters/Descending" }
+        - { $ref: "#/components/parameters/Limit" }
+        - { $ref: "#/components/parameters/Skip" }
+        - { $ref: "#/components/parameters/Key" }
+        - { $ref: "#/components/parameters/StartKey" }
+        - { $ref: "#/components/parameters/EndKey" }
+      responses:
+        "200":
+          description: Rows
+          headers:
+            X-Couch-Request-ID: { $ref: "#/components/headers/X-Couch-Request-ID" }
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/AllDocsResult" }
+        "401": { $ref: "#/components/responses/Error" }
+        "403": { $ref: "#/components/responses/Error" }
     post:
       tags: [query]
       operationId: postAllDocs
@@ -252,10 +319,14 @@ paths:
       responses:
         "200":
           description: Rows
+          headers:
+            X-Couch-Request-ID: { $ref: "#/components/headers/X-Couch-Request-ID" }
           content:
             application/json:
               schema: { $ref: "#/components/schemas/AllDocsResult" }
         "401": { $ref: "#/components/responses/Error" }
+        "403": { $ref: "#/components/responses/Error" }
+        "400": { $ref: "#/components/responses/Error" }
 
   /{db}/_bulk_docs:
     parameters:
@@ -270,14 +341,27 @@ paths:
           application/json:
             schema: { $ref: "#/components/schemas/BulkDocs" }
       responses:
+        "202":
+          description: Accepted; some writes did not reach quorum
+          headers:
+            X-Couch-Request-ID: { $ref: "#/components/headers/X-Couch-Request-ID" }
+          content:
+            application/json:
+              schema:
+                type: array
+                items: { $ref: "#/components/schemas/DocumentResult" }
         "201":
           description: Per-document results
+          headers:
+            X-Couch-Request-ID: { $ref: "#/components/headers/X-Couch-Request-ID" }
           content:
             application/json:
               schema:
                 type: array
                 items: { $ref: "#/components/schemas/DocumentResult" }
         "401": { $ref: "#/components/responses/Error" }
+        "403": { $ref: "#/components/responses/Error" }
+        "400": { $ref: "#/components/responses/Error" }
 
   /{db}/_find:
     parameters:
@@ -294,10 +378,14 @@ paths:
       responses:
         "200":
           description: Matching documents
+          headers:
+            X-Couch-Request-ID: { $ref: "#/components/headers/X-Couch-Request-ID" }
           content:
             application/json:
               schema: { $ref: "#/components/schemas/FindResult" }
         "400": { $ref: "#/components/responses/Error" }
+        "401": { $ref: "#/components/responses/Error" }
+        "403": { $ref: "#/components/responses/Error" }
 
   /{db}/_index:
     parameters:
@@ -309,10 +397,13 @@ paths:
       responses:
         "200":
           description: Indexes
+          headers:
+            X-Couch-Request-ID: { $ref: "#/components/headers/X-Couch-Request-ID" }
           content:
             application/json:
               schema: { $ref: "#/components/schemas/IndexesInformation" }
         "401": { $ref: "#/components/responses/Error" }
+        "403": { $ref: "#/components/responses/Error" }
     post:
       tags: [query]
       operationId: postIndex
@@ -325,10 +416,14 @@ paths:
       responses:
         "200":
           description: Index created or already exists
+          headers:
+            X-Couch-Request-ID: { $ref: "#/components/headers/X-Couch-Request-ID" }
           content:
             application/json:
               schema: { $ref: "#/components/schemas/IndexResult" }
         "401": { $ref: "#/components/responses/Error" }
+        "403": { $ref: "#/components/responses/Error" }
+        "400": { $ref: "#/components/responses/Error" }
 
   /{db}/{docid}:
     parameters:
@@ -348,13 +443,53 @@ paths:
         - name: conflicts
           in: query
           schema: { type: boolean, default: false }
+        - name: open_revs
+          in: query
+          description: "`all` or a JSON array of revisions. The response is then a list of `{ok: Document}` or `{missing: rev}` entries, which the 200 schema does not model."
+          schema: { type: string }
+        - name: revs
+          in: query
+          description: Include the revision history in `_revisions`.
+          schema: { type: boolean, default: false }
+        - name: attachments
+          in: query
+          description: Inline attachment bodies, base64-encoded, in `_attachments`.
+          schema: { type: boolean, default: false }
+        - name: latest
+          in: query
+          description: With `open_revs`, return the latest leaf revisions.
+          schema: { type: boolean, default: false }
       responses:
         "200":
           description: The document
+          headers:
+            ETag: { $ref: "#/components/headers/ETag" }
+            X-Couch-Request-ID: { $ref: "#/components/headers/X-Couch-Request-ID" }
           content:
             application/json:
               schema: { $ref: "#/components/schemas/Document" }
         "404": { $ref: "#/components/responses/Error" }
+        "401": { $ref: "#/components/responses/Error" }
+        "403": { $ref: "#/components/responses/Error" }
+        "400": { $ref: "#/components/responses/Error" }
+    head:
+      tags: [documents]
+      operationId: headDocument
+      summary: Get a document's current revision without its body
+      parameters:
+        - name: rev
+          in: query
+          schema: { type: string }
+      responses:
+        "200":
+          description: Document exists; the ETag header carries its revision
+          headers:
+            ETag: { $ref: "#/components/headers/ETag" }
+            X-Couch-Request-ID: { $ref: "#/components/headers/X-Couch-Request-ID" }
+        "404": { description: Document does not exist }
+        "401": { $ref: "#/components/responses/Error" }
+        "403": { $ref: "#/components/responses/Error" }
+        "400": { $ref: "#/components/responses/Error" }
     put:
       tags: [documents]
       operationId: putDocument
@@ -372,15 +507,22 @@ paths:
       responses:
         "201":
           description: Document written
+          headers:
+            X-Couch-Request-ID: { $ref: "#/components/headers/X-Couch-Request-ID" }
           content:
             application/json:
               schema: { $ref: "#/components/schemas/DocumentResult" }
         "202":
           description: Document accepted
+          headers:
+            X-Couch-Request-ID: { $ref: "#/components/headers/X-Couch-Request-ID" }
           content:
             application/json:
               schema: { $ref: "#/components/schemas/DocumentResult" }
         "409": { $ref: "#/components/responses/Error" }
+        "401": { $ref: "#/components/responses/Error" }
+        "403": { $ref: "#/components/responses/Error" }
+        "400": { $ref: "#/components/responses/Error" }
     delete:
       tags: [documents]
       operationId: deleteDocument
@@ -393,16 +535,23 @@ paths:
       responses:
         "200":
           description: Document deleted
+          headers:
+            X-Couch-Request-ID: { $ref: "#/components/headers/X-Couch-Request-ID" }
           content:
             application/json:
               schema: { $ref: "#/components/schemas/DocumentResult" }
         "202":
           description: Deletion accepted
+          headers:
+            X-Couch-Request-ID: { $ref: "#/components/headers/X-Couch-Request-ID" }
           content:
             application/json:
               schema: { $ref: "#/components/schemas/DocumentResult" }
         "404": { $ref: "#/components/responses/Error" }
         "409": { $ref: "#/components/responses/Error" }
+        "401": { $ref: "#/components/responses/Error" }
+        "403": { $ref: "#/components/responses/Error" }
+        "400": { $ref: "#/components/responses/Error" }
 
   /{db}/_design/{ddoc}/_view/{view}:
     parameters:
@@ -424,10 +573,15 @@ paths:
       responses:
         "200":
           description: View rows
+          headers:
+            X-Couch-Request-ID: { $ref: "#/components/headers/X-Couch-Request-ID" }
           content:
             application/json:
               schema: { $ref: "#/components/schemas/ViewResult" }
         "404": { $ref: "#/components/responses/Error" }
+        "401": { $ref: "#/components/responses/Error" }
+        "403": { $ref: "#/components/responses/Error" }
+        "400": { $ref: "#/components/responses/Error" }
 
   /_replicate:
     post:
@@ -442,15 +596,22 @@ paths:
       responses:
         "200":
           description: Replication finished
+          headers:
+            X-Couch-Request-ID: { $ref: "#/components/headers/X-Couch-Request-ID" }
           content:
             application/json:
               schema: { $ref: "#/components/schemas/ReplicationResult" }
         "202":
           description: Continuous replication started
+          headers:
+            X-Couch-Request-ID: { $ref: "#/components/headers/X-Couch-Request-ID" }
           content:
             application/json:
               schema: { $ref: "#/components/schemas/ReplicationResult" }
         "404": { $ref: "#/components/responses/Error" }
+        "401": { $ref: "#/components/responses/Error" }
+        "403": { $ref: "#/components/responses/Error" }
+        "400": { $ref: "#/components/responses/Error" }
 
   /{db}/_changes:
     parameters:
@@ -510,11 +671,15 @@ paths:
       responses:
         "200":
           description: Changes
+          headers:
+            X-Couch-Request-ID: { $ref: "#/components/headers/X-Couch-Request-ID" }
           content:
             application/json:
               schema: { $ref: "#/components/schemas/ChangesResult" }
         "400": { $ref: "#/components/responses/Error" }
         "404": { $ref: "#/components/responses/Error" }
+        "401": { $ref: "#/components/responses/Error" }
+        "403": { $ref: "#/components/responses/Error" }
     post:
       tags: [changes]
       operationId: postChanges
@@ -527,11 +692,15 @@ paths:
       responses:
         "200":
           description: Changes
+          headers:
+            X-Couch-Request-ID: { $ref: "#/components/headers/X-Couch-Request-ID" }
           content:
             application/json:
               schema: { $ref: "#/components/schemas/ChangesResult" }
         "400": { $ref: "#/components/responses/Error" }
         "404": { $ref: "#/components/responses/Error" }
+        "401": { $ref: "#/components/responses/Error" }
+        "403": { $ref: "#/components/responses/Error" }
 
   /{db}/_local/{docid}:
     parameters:
@@ -544,10 +713,14 @@ paths:
       responses:
         "200":
           description: The document
+          headers:
+            X-Couch-Request-ID: { $ref: "#/components/headers/X-Couch-Request-ID" }
           content:
             application/json:
               schema: { $ref: "#/components/schemas/Document" }
         "404": { $ref: "#/components/responses/Error" }
+        "401": { $ref: "#/components/responses/Error" }
+        "403": { $ref: "#/components/responses/Error" }
     put:
       tags: [documents]
       operationId: putLocalDocument
@@ -560,10 +733,15 @@ paths:
       responses:
         "201":
           description: Document written
+          headers:
+            X-Couch-Request-ID: { $ref: "#/components/headers/X-Couch-Request-ID" }
           content:
             application/json:
               schema: { $ref: "#/components/schemas/DocumentResult" }
         "409": { $ref: "#/components/responses/Error" }
+        "401": { $ref: "#/components/responses/Error" }
+        "403": { $ref: "#/components/responses/Error" }
+        "400": { $ref: "#/components/responses/Error" }
     delete:
       tags: [documents]
       operationId: deleteLocalDocument
@@ -575,10 +753,15 @@ paths:
       responses:
         "200":
           description: Document deleted
+          headers:
+            X-Couch-Request-ID: { $ref: "#/components/headers/X-Couch-Request-ID" }
           content:
             application/json:
               schema: { $ref: "#/components/schemas/DocumentResult" }
         "404": { $ref: "#/components/responses/Error" }
+        "401": { $ref: "#/components/responses/Error" }
+        "403": { $ref: "#/components/responses/Error" }
+        "400": { $ref: "#/components/responses/Error" }
 
   /{db}/_security:
     parameters:
@@ -590,10 +773,13 @@ paths:
       responses:
         "200":
           description: Security object
+          headers:
+            X-Couch-Request-ID: { $ref: "#/components/headers/X-Couch-Request-ID" }
           content:
             application/json:
               schema: { $ref: "#/components/schemas/Security" }
         "401": { $ref: "#/components/responses/Error" }
+        "403": { $ref: "#/components/responses/Error" }
     put:
       tags: [security]
       operationId: putSecurity
@@ -606,10 +792,14 @@ paths:
       responses:
         "200":
           description: Security updated
+          headers:
+            X-Couch-Request-ID: { $ref: "#/components/headers/X-Couch-Request-ID" }
           content:
             application/json:
               schema: { $ref: "#/components/schemas/Ok" }
         "401": { $ref: "#/components/responses/Error" }
+        "403": { $ref: "#/components/responses/Error" }
+        "400": { $ref: "#/components/responses/Error" }
 
   /{db}/_design/{ddoc}:
     parameters:
@@ -622,10 +812,14 @@ paths:
       responses:
         "200":
           description: The design document
+          headers:
+            X-Couch-Request-ID: { $ref: "#/components/headers/X-Couch-Request-ID" }
           content:
             application/json:
               schema: { $ref: "#/components/schemas/DesignDocument" }
         "404": { $ref: "#/components/responses/Error" }
+        "401": { $ref: "#/components/responses/Error" }
+        "403": { $ref: "#/components/responses/Error" }
     put:
       tags: [design-documents]
       operationId: putDesignDocument
@@ -638,10 +832,15 @@ paths:
       responses:
         "201":
           description: Written
+          headers:
+            X-Couch-Request-ID: { $ref: "#/components/headers/X-Couch-Request-ID" }
           content:
             application/json:
               schema: { $ref: "#/components/schemas/DocumentResult" }
         "409": { $ref: "#/components/responses/Error" }
+        "401": { $ref: "#/components/responses/Error" }
+        "403": { $ref: "#/components/responses/Error" }
+        "400": { $ref: "#/components/responses/Error" }
     delete:
       tags: [design-documents]
       operationId: deleteDesignDocument
@@ -654,10 +853,15 @@ paths:
       responses:
         "200":
           description: Deleted
+          headers:
+            X-Couch-Request-ID: { $ref: "#/components/headers/X-Couch-Request-ID" }
           content:
             application/json:
               schema: { $ref: "#/components/schemas/DocumentResult" }
         "404": { $ref: "#/components/responses/Error" }
+        "401": { $ref: "#/components/responses/Error" }
+        "403": { $ref: "#/components/responses/Error" }
+        "400": { $ref: "#/components/responses/Error" }
 
   /{db}/_partition/{partition}/_all_docs:
     parameters:
@@ -675,10 +879,14 @@ paths:
       responses:
         "200":
           description: Rows
+          headers:
+            X-Couch-Request-ID: { $ref: "#/components/headers/X-Couch-Request-ID" }
           content:
             application/json:
               schema: { $ref: "#/components/schemas/AllDocsResult" }
         "401": { $ref: "#/components/responses/Error" }
+        "403": { $ref: "#/components/responses/Error" }
+        "400": { $ref: "#/components/responses/Error" }
 
   /{db}/_partition/{partition}/_find:
     parameters:
@@ -696,10 +904,14 @@ paths:
       responses:
         "200":
           description: Matching documents
+          headers:
+            X-Couch-Request-ID: { $ref: "#/components/headers/X-Couch-Request-ID" }
           content:
             application/json:
               schema: { $ref: "#/components/schemas/FindResult" }
         "401": { $ref: "#/components/responses/Error" }
+        "403": { $ref: "#/components/responses/Error" }
+        "400": { $ref: "#/components/responses/Error" }
 
   /{db}/{docid}/{attname}:
     parameters:
@@ -720,10 +932,15 @@ paths:
       responses:
         "200":
           description: Attachment bytes
+          headers:
+            X-Couch-Request-ID: { $ref: "#/components/headers/X-Couch-Request-ID" }
           content:
             application/octet-stream:
               schema: { type: string, format: binary }
         "404": { $ref: "#/components/responses/Error" }
+        "401": { $ref: "#/components/responses/Error" }
+        "403": { $ref: "#/components/responses/Error" }
+        "400": { $ref: "#/components/responses/Error" }
     put:
       tags: [attachments]
       operationId: putAttachment
@@ -741,10 +958,15 @@ paths:
       responses:
         "201":
           description: Attachment stored
+          headers:
+            X-Couch-Request-ID: { $ref: "#/components/headers/X-Couch-Request-ID" }
           content:
             application/json:
               schema: { $ref: "#/components/schemas/DocumentResult" }
         "409": { $ref: "#/components/responses/Error" }
+        "401": { $ref: "#/components/responses/Error" }
+        "403": { $ref: "#/components/responses/Error" }
+        "400": { $ref: "#/components/responses/Error" }
     delete:
       tags: [attachments]
       operationId: deleteAttachment
@@ -757,10 +979,292 @@ paths:
       responses:
         "200":
           description: Attachment deleted
+          headers:
+            X-Couch-Request-ID: { $ref: "#/components/headers/X-Couch-Request-ID" }
           content:
             application/json:
               schema: { $ref: "#/components/schemas/DocumentResult" }
         "409": { $ref: "#/components/responses/Error" }
+        "401": { $ref: "#/components/responses/Error" }
+        "403": { $ref: "#/components/responses/Error" }
+        "400": { $ref: "#/components/responses/Error" }
+
+  /{db}/_design_docs:
+    parameters:
+      - { $ref: "#/components/parameters/Db" }
+    get:
+      tags: [design-documents]
+      operationId: getDesignDocs
+      summary: List design documents
+      parameters:
+        - { $ref: "#/components/parameters/IncludeDocs" }
+        - { $ref: "#/components/parameters/Descending" }
+        - { $ref: "#/components/parameters/Limit" }
+        - { $ref: "#/components/parameters/Skip" }
+        - { $ref: "#/components/parameters/Key" }
+        - { $ref: "#/components/parameters/StartKey" }
+        - { $ref: "#/components/parameters/EndKey" }
+      responses:
+        "200":
+          description: Design document rows
+          headers:
+            X-Couch-Request-ID: { $ref: "#/components/headers/X-Couch-Request-ID" }
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/AllDocsResult" }
+        "401": { $ref: "#/components/responses/Error" }
+        "403": { $ref: "#/components/responses/Error" }
+
+  /{db}/_bulk_get:
+    parameters:
+      - { $ref: "#/components/parameters/Db" }
+    post:
+      tags: [documents]
+      operationId: postBulkGet
+      summary: Fetch many documents, optionally at given revisions
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/BulkGetQuery" }
+      responses:
+        "200":
+          description: Per-document results
+          headers:
+            X-Couch-Request-ID: { $ref: "#/components/headers/X-Couch-Request-ID" }
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/BulkGetResult" }
+        "401": { $ref: "#/components/responses/Error" }
+        "403": { $ref: "#/components/responses/Error" }
+        "400": { $ref: "#/components/responses/Error" }
+
+  /{db}/_revs_diff:
+    parameters:
+      - { $ref: "#/components/parameters/Db" }
+    post:
+      tags: [documents]
+      operationId: postRevsDiff
+      summary: Find the revisions a database is missing
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/RevsDiffRequest" }
+      responses:
+        "200":
+          description: Missing revisions per document id
+          headers:
+            X-Couch-Request-ID: { $ref: "#/components/headers/X-Couch-Request-ID" }
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/RevsDiffResult" }
+        "401": { $ref: "#/components/responses/Error" }
+        "403": { $ref: "#/components/responses/Error" }
+        "400": { $ref: "#/components/responses/Error" }
+
+  /{db}/_explain:
+    parameters:
+      - { $ref: "#/components/parameters/Db" }
+    post:
+      tags: [query]
+      operationId: postExplain
+      summary: Explain how a Mango query would run
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/FindQuery" }
+      responses:
+        "200":
+          description: Query plan
+          headers:
+            X-Couch-Request-ID: { $ref: "#/components/headers/X-Couch-Request-ID" }
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Explain" }
+        "401": { $ref: "#/components/responses/Error" }
+        "403": { $ref: "#/components/responses/Error" }
+        "400": { $ref: "#/components/responses/Error" }
+
+  /{db}/_purge:
+    parameters:
+      - { $ref: "#/components/parameters/Db" }
+    post:
+      tags: [documents]
+      operationId: postPurge
+      summary: Permanently remove revisions
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/PurgeRequest" }
+      responses:
+        "201":
+          description: Revisions purged
+          headers:
+            X-Couch-Request-ID: { $ref: "#/components/headers/X-Couch-Request-ID" }
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/PurgeResult" }
+        "401": { $ref: "#/components/responses/Error" }
+        "403": { $ref: "#/components/responses/Error" }
+        "400": { $ref: "#/components/responses/Error" }
+
+  /{db}/_compact:
+    parameters:
+      - { $ref: "#/components/parameters/Db" }
+    post:
+      tags: [databases]
+      operationId: postCompact
+      summary: Compact the database file
+      requestBody:
+        required: true
+        description: Must be a JSON body; CouchDB ignores its content
+        content:
+          application/json:
+            schema: { type: object }
+      responses:
+        "202":
+          description: Compaction started
+          headers:
+            X-Couch-Request-ID: { $ref: "#/components/headers/X-Couch-Request-ID" }
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Ok" }
+        "401": { $ref: "#/components/responses/Error" }
+        "403": { $ref: "#/components/responses/Error" }
+
+  /{db}/_compact/{ddoc}:
+    parameters:
+      - { $ref: "#/components/parameters/Db" }
+      - { $ref: "#/components/parameters/Ddoc" }
+    post:
+      tags: [design-documents]
+      operationId: postCompactDesign
+      summary: Compact the view index of one design document
+      requestBody:
+        required: true
+        description: Must be a JSON body; CouchDB ignores its content
+        content:
+          application/json:
+            schema: { type: object }
+      responses:
+        "202":
+          description: Compaction started
+          headers:
+            X-Couch-Request-ID: { $ref: "#/components/headers/X-Couch-Request-ID" }
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Ok" }
+        "401": { $ref: "#/components/responses/Error" }
+        "403": { $ref: "#/components/responses/Error" }
+
+  /_active_tasks:
+    get:
+      tags: [server]
+      operationId: getActiveTasks
+      summary: List running tasks (compaction, indexing, replication)
+      responses:
+        "200":
+          description: Active tasks
+          headers:
+            X-Couch-Request-ID: { $ref: "#/components/headers/X-Couch-Request-ID" }
+          content:
+            application/json:
+              schema:
+                type: array
+                items: { $ref: "#/components/schemas/ActiveTask" }
+        "401": { $ref: "#/components/responses/Error" }
+        "403": { $ref: "#/components/responses/Error" }
+
+  /_dbs_info:
+    post:
+      tags: [databases]
+      operationId: postDbsInfo
+      summary: Get information for several databases in one request
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/DbsInfoRequest" }
+      responses:
+        "200":
+          description: One entry per requested database
+          headers:
+            X-Couch-Request-ID: { $ref: "#/components/headers/X-Couch-Request-ID" }
+          content:
+            application/json:
+              schema:
+                type: array
+                items: { $ref: "#/components/schemas/DbsInfoResult" }
+        "401": { $ref: "#/components/responses/Error" }
+        "403": { $ref: "#/components/responses/Error" }
+        "400": { $ref: "#/components/responses/Error" }
+
+  /_scheduler/jobs:
+    get:
+      tags: [server]
+      operationId: getSchedulerJobs
+      summary: List replication jobs known to the scheduler
+      parameters:
+        - { $ref: "#/components/parameters/Limit" }
+        - { $ref: "#/components/parameters/Skip" }
+      responses:
+        "200":
+          description: Scheduler jobs
+          headers:
+            X-Couch-Request-ID: { $ref: "#/components/headers/X-Couch-Request-ID" }
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/SchedulerJobs" }
+        "401": { $ref: "#/components/responses/Error" }
+        "403": { $ref: "#/components/responses/Error" }
+
+  /_scheduler/docs:
+    get:
+      tags: [server]
+      operationId: getSchedulerDocs
+      summary: List replication documents known to the scheduler
+      parameters:
+        - { $ref: "#/components/parameters/Limit" }
+        - { $ref: "#/components/parameters/Skip" }
+      responses:
+        "200":
+          description: Scheduler replication documents
+          headers:
+            X-Couch-Request-ID: { $ref: "#/components/headers/X-Couch-Request-ID" }
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/SchedulerDocs" }
+        "401": { $ref: "#/components/responses/Error" }
+        "403": { $ref: "#/components/responses/Error" }
+
+  /_node/{node}/_config:
+    parameters:
+      - name: node
+        in: path
+        required: true
+        description: Node name, usually `_local`
+        schema: { type: string }
+    get:
+      tags: [server]
+      operationId: getNodeConfig
+      summary: Get the configuration of one node
+      responses:
+        "200":
+          description: Configuration sections
+          headers:
+            X-Couch-Request-ID: { $ref: "#/components/headers/X-Couch-Request-ID" }
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties:
+                  type: object
+                  additionalProperties: { type: string }
+        "401": { $ref: "#/components/responses/Error" }
+        "403": { $ref: "#/components/responses/Error" }
 
 components:
   securitySchemes:
@@ -814,6 +1318,25 @@ components:
       name: skip
       in: query
       schema: { type: integer, minimum: 0, default: 0 }
+    IncludeDocs:
+      name: include_docs
+      in: query
+      schema: { type: boolean, default: false }
+    Key:
+      name: key
+      in: query
+      description: JSON-encoded key to match exactly
+      schema: { type: string }
+    StartKey:
+      name: startkey
+      in: query
+      description: JSON-encoded first key
+      schema: { type: string }
+    EndKey:
+      name: endkey
+      in: query
+      description: JSON-encoded last key
+      schema: { type: string }
 
   responses:
     Error:
@@ -821,6 +1344,14 @@ components:
       content:
         application/json:
           schema: { $ref: "#/components/schemas/Error" }
+
+  headers:
+    ETag:
+      description: Current revision of the document, quoted
+      schema: { type: string }
+    X-Couch-Request-ID:
+      description: Server-generated request id, for matching server logs
+      schema: { type: string }
 
   schemas:
     Error:
@@ -945,6 +1476,13 @@ components:
         _conflicts:
           type: array
           items: { type: string }
+        _revisions:
+          type: object
+          properties:
+            start: { type: integer }
+            ids:
+              type: array
+              items: { type: string }
 
     DocumentResult:
       type: object
@@ -1191,16 +1729,15 @@ components:
       required: [source, target]
       properties:
         source:
-          description: Database URL, or an object with url and auth
-          type: object
-          additionalProperties: true
-          properties:
-            url: { type: string }
+          description: Database URL, or an endpoint object with url and auth
+          oneOf:
+            - { type: string }
+            - { $ref: "#/components/schemas/ReplicationEndpoint" }
         target:
-          type: object
-          additionalProperties: true
-          properties:
-            url: { type: string }
+          description: Database URL, or an endpoint object with url and auth
+          oneOf:
+            - { type: string }
+            - { $ref: "#/components/schemas/ReplicationEndpoint" }
         create_target: { type: boolean }
         continuous: { type: boolean }
         cancel: { type: boolean }
@@ -1223,3 +1760,152 @@ components:
           items:
             type: object
             additionalProperties: true
+
+    ReplicationEndpoint:
+      type: object
+      additionalProperties: true
+      properties:
+        url: { type: string }
+        auth:
+          type: object
+          additionalProperties: true
+        headers:
+          type: object
+          additionalProperties: { type: string }
+
+    BulkGetQuery:
+      type: object
+      required: [docs]
+      properties:
+        docs:
+          type: array
+          items:
+            type: object
+            required: [id]
+            properties:
+              id: { type: string }
+              rev: { type: string }
+              atts_since:
+                type: array
+                items: { type: string }
+
+    BulkGetResult:
+      type: object
+      required: [results]
+      properties:
+        results:
+          type: array
+          items:
+            type: object
+            properties:
+              id: { type: string }
+              docs:
+                type: array
+                items:
+                  type: object
+                  properties:
+                    ok: { $ref: "#/components/schemas/Document" }
+                    error:
+                      type: object
+                      properties:
+                        id: { type: string }
+                        rev: { type: string }
+                        error: { type: string }
+                        reason: { type: string }
+
+    RevsDiffRequest:
+      type: object
+      description: Map of document id to the revisions to check
+      additionalProperties:
+        type: array
+        items: { type: string }
+
+    RevsDiffResult:
+      type: object
+      description: Map of document id to the revisions the database is missing
+      additionalProperties:
+        type: object
+        properties:
+          missing:
+            type: array
+            items: { type: string }
+          possible_ancestors:
+            type: array
+            items: { type: string }
+
+    Explain:
+      type: object
+      additionalProperties: true
+      properties:
+        dbname: { type: string }
+        index: { type: object, additionalProperties: true }
+        selector: { type: object, additionalProperties: true }
+        opts: { type: object, additionalProperties: true }
+        limit: { type: integer }
+        skip: { type: integer }
+        fields:
+          type: array
+          items: { type: string }
+        range: { type: object, additionalProperties: true }
+
+    PurgeRequest:
+      type: object
+      description: Map of document id to the revisions to purge
+      additionalProperties:
+        type: array
+        items: { type: string }
+
+    PurgeResult:
+      type: object
+      properties:
+        purge_seq: { type: string, nullable: true }
+        purged:
+          type: object
+          additionalProperties:
+            type: array
+            items: { type: string }
+
+    DbsInfoRequest:
+      type: object
+      required: [keys]
+      properties:
+        keys:
+          type: array
+          items: { type: string }
+
+    DbsInfoResult:
+      type: object
+      properties:
+        key: { type: string }
+        info: { $ref: "#/components/schemas/DatabaseInformation" }
+        error: { type: string }
+
+    ActiveTask:
+      type: object
+      additionalProperties: true
+      properties:
+        type: { type: string }
+        pid: { type: string }
+        database: { type: string }
+        node: { type: string }
+        started_on: { type: integer }
+        updated_on: { type: integer }
+        progress: { type: integer }
+
+    SchedulerJobs:
+      type: object
+      properties:
+        total_rows: { type: integer }
+        offset: { type: integer }
+        jobs:
+          type: array
+          items: { type: object, additionalProperties: true }
+
+    SchedulerDocs:
+      type: object
+      properties:
+        total_rows: { type: integer }
+        offset: { type: integer }
+        docs:
+          type: array
+          items: { type: object, additionalProperties: true }
