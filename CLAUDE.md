@@ -1,7 +1,7 @@
 # CLAUDE.md — couchdb-openapi
 
 OpenAPI 3.0.3 description of the CouchDB 3.x HTTP API (`openapi.yaml`).
-Source of truth for every SDK. Current version: **0.6.0**.
+Source of truth for every SDK. Current version: **0.7.0**.
 
 Pipeline: tag `vX.Y.Z` here → `release.yml` sends `spec-released` →
 couchdb-sdk-generator regenerates SDKs and opens PRs. See the generator's
@@ -28,34 +28,26 @@ CI also runs an `oasdiff` breaking-change check against the PR base.
 
 ## Fixes still open
 
-Done in 0.6.0: system db names allowed by the `Db` pattern, `401`/`403`
-(and other missing 4xx) responses, more `ViewQuery` fields (`key`, ...),
-`DesignDocument` filters/updates/validation, typed `ReplicationResult`
-history, continuous `_changes` documented as NDJSON, `oasdiff` action pinned.
+Done in 0.6.0/0.7.0: system db names in the `Db` pattern, 4xx responses,
+`ViewQuery`/`DesignDocument`/`ReplicationResult` fields, attachments accept
+any content type (`*/*` added next to `application/octet-stream`, so not
+breaking), replication `source`/`target` take a URL string or an object,
+attachment paths can't be mistaken for `_design`/`_local` (`AttDocId`
+pattern), `oasdiff` pinned.
 
-1. **`putAttachment` only accepts `application/octet-stream`.** CouchDB stores
-   the request's `Content-Type` as the attachment's `content_type`. Python and
-   Node send the real type with a header override. Switching the spec to
-   `*/*` is a breaking change per oasdiff, so leave it for 1.0.
-2. **`ReplicationRequest.source`/`target` are object-only.** CouchDB also
-   accepts a plain URL string. `oneOf: [string, object]` generates awkward
-   wrapper types in Python and TypeScript, so it's left as object-only for now.
-3. **Continuous `_changes` is still typed as one `ChangesResult`.** It's
-   documented as NDJSON, but generated clients still can't stream it.
-4. Paths `/{db}/{docid}/{attname}` and `/{db}/_design/{ddoc}` /
-   `/{db}/_local/{docid}` overlap structurally. Some routers and mock
-   servers pick the wrong one.
+1. **Continuous `_changes` is typed as one `ChangesResult`.** CouchDB serves
+   it as `application/json` even though the body is NDJSON, and one operation
+   can't have two response shapes for the same media type. It's documented on
+   the operation; SDKs read the raw stream.
+2. **`ReplicationEndpoint` is untyped.** `oneOf: [string, object]` is the
+   accurate schema, but typescript-fetch 7.10 generates broken code for it
+   (imports a `./string` model).
+3. **JWT (`bearerAuth`) has no conformance scenario**: it needs
+   `jwt_authentication` and keys configured server-wide.
 
 ## Features to add
 
-Ordered by what the SDKs need first:
-
-1. `GET /{db}/_all_docs` and `GET .../_view/{view}` (only POST exists).
-2. `HEAD /{db}/{docid}` (cheap existence/ETag check; SDK `has()` does a full GET today).
-3. `_design_docs`, `_local_docs`, `POST /_dbs_info`.
-4. `_purge`, `_explain`, `_compact`, `_view_cleanup`.
-5. `_scheduler/jobs`, `_scheduler/docs`, `_active_tasks`, `_db_updates`.
-6. `_users` helpers (create user doc in `_users`), JWT / proxy auth schemes.
-7. `open_revs` on GET document (multipart/mixed or `Accept: application/json`).
-8. `_bulk_get` multipart response and `_bulk_docs` `417` on validation failure.
-9. ETag / `If-None-Match` support on doc and attachment GET.
+- `_bulk_get` multipart response (streams attachments instead of base64).
+- `open_revs` on GET document, as its own path or with `Accept: application/json`.
+- `_node/{node}/_config`, `_membership`, `_cluster_setup`, search indexes.
+- Proxy authentication headers (`X-Auth-CouchDB-*`).
