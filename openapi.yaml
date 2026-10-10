@@ -4,7 +4,7 @@ info:
   description: |
     OpenAPI description of the Apache CouchDB 3.x HTTP API.
     This is the single source of truth for all generated CouchDB SDKs.
-  version: 0.5.0
+  version: 0.6.0
   license:
     name: Apache-2.0
     url: https://www.apache.org/licenses/LICENSE-2.0
@@ -199,6 +199,7 @@ paths:
         "400": { $ref: "#/components/responses/Error" }
         "401": { $ref: "#/components/responses/Error" }
         "412": { $ref: "#/components/responses/Error" }
+        "403": { $ref: "#/components/responses/Error" }
     delete:
       tags: [databases]
       operationId: deleteDatabase
@@ -215,6 +216,8 @@ paths:
             application/json:
               schema: { $ref: "#/components/schemas/Ok" }
         "404": { $ref: "#/components/responses/Error" }
+        "401": { $ref: "#/components/responses/Error" }
+        "403": { $ref: "#/components/responses/Error" }
     post:
       tags: [documents]
       operationId: postDocument
@@ -236,6 +239,9 @@ paths:
             application/json:
               schema: { $ref: "#/components/schemas/DocumentResult" }
         "409": { $ref: "#/components/responses/Error" }
+        "400": { $ref: "#/components/responses/Error" }
+        "401": { $ref: "#/components/responses/Error" }
+        "403": { $ref: "#/components/responses/Error" }
 
   /{db}/_all_docs:
     parameters:
@@ -256,6 +262,8 @@ paths:
             application/json:
               schema: { $ref: "#/components/schemas/AllDocsResult" }
         "401": { $ref: "#/components/responses/Error" }
+        "400": { $ref: "#/components/responses/Error" }
+        "403": { $ref: "#/components/responses/Error" }
 
   /{db}/_bulk_docs:
     parameters:
@@ -278,6 +286,9 @@ paths:
                 type: array
                 items: { $ref: "#/components/schemas/DocumentResult" }
         "401": { $ref: "#/components/responses/Error" }
+        "400": { $ref: "#/components/responses/Error" }
+        "403": { $ref: "#/components/responses/Error" }
+        "417": { $ref: "#/components/responses/Error" }
 
   /{db}/_find:
     parameters:
@@ -298,6 +309,8 @@ paths:
             application/json:
               schema: { $ref: "#/components/schemas/FindResult" }
         "400": { $ref: "#/components/responses/Error" }
+        "401": { $ref: "#/components/responses/Error" }
+        "403": { $ref: "#/components/responses/Error" }
 
   /{db}/_index:
     parameters:
@@ -329,6 +342,8 @@ paths:
             application/json:
               schema: { $ref: "#/components/schemas/IndexResult" }
         "401": { $ref: "#/components/responses/Error" }
+        "400": { $ref: "#/components/responses/Error" }
+        "403": { $ref: "#/components/responses/Error" }
 
   /{db}/{docid}:
     parameters:
@@ -363,6 +378,9 @@ paths:
             application/json:
               schema: { $ref: "#/components/schemas/Document" }
         "404": { $ref: "#/components/responses/Error" }
+        "400": { $ref: "#/components/responses/Error" }
+        "401": { $ref: "#/components/responses/Error" }
+        "403": { $ref: "#/components/responses/Error" }
     put:
       tags: [documents]
       operationId: putDocument
@@ -389,6 +407,9 @@ paths:
             application/json:
               schema: { $ref: "#/components/schemas/DocumentResult" }
         "409": { $ref: "#/components/responses/Error" }
+        "400": { $ref: "#/components/responses/Error" }
+        "401": { $ref: "#/components/responses/Error" }
+        "403": { $ref: "#/components/responses/Error" }
     delete:
       tags: [documents]
       operationId: deleteDocument
@@ -411,6 +432,8 @@ paths:
               schema: { $ref: "#/components/schemas/DocumentResult" }
         "404": { $ref: "#/components/responses/Error" }
         "409": { $ref: "#/components/responses/Error" }
+        "401": { $ref: "#/components/responses/Error" }
+        "403": { $ref: "#/components/responses/Error" }
 
   /{db}/_design/{ddoc}/_view/{view}:
     parameters:
@@ -436,6 +459,9 @@ paths:
             application/json:
               schema: { $ref: "#/components/schemas/ViewResult" }
         "404": { $ref: "#/components/responses/Error" }
+        "400": { $ref: "#/components/responses/Error" }
+        "401": { $ref: "#/components/responses/Error" }
+        "403": { $ref: "#/components/responses/Error" }
 
   /_replicate:
     post:
@@ -459,6 +485,10 @@ paths:
             application/json:
               schema: { $ref: "#/components/schemas/ReplicationResult" }
         "404": { $ref: "#/components/responses/Error" }
+        "400": { $ref: "#/components/responses/Error" }
+        "401": { $ref: "#/components/responses/Error" }
+        "403": { $ref: "#/components/responses/Error" }
+        "500": { $ref: "#/components/responses/Error" }
 
   /{db}/_changes:
     parameters:
@@ -517,12 +547,18 @@ paths:
       summary: Database changes feed (normal, longpoll or continuous)
       responses:
         "200":
-          description: Changes
+          description: |
+            Changes. With `feed=continuous` the body is newline-delimited JSON
+            instead of one object: a change per line, blank heartbeat lines,
+            then a final `{"last_seq": ...}` line. Generated clients can't
+            stream that; read the raw response.
           content:
             application/json:
               schema: { $ref: "#/components/schemas/ChangesResult" }
         "400": { $ref: "#/components/responses/Error" }
         "404": { $ref: "#/components/responses/Error" }
+        "401": { $ref: "#/components/responses/Error" }
+        "403": { $ref: "#/components/responses/Error" }
     post:
       tags: [changes]
       operationId: postChanges
@@ -540,6 +576,8 @@ paths:
               schema: { $ref: "#/components/schemas/ChangesResult" }
         "400": { $ref: "#/components/responses/Error" }
         "404": { $ref: "#/components/responses/Error" }
+        "401": { $ref: "#/components/responses/Error" }
+        "403": { $ref: "#/components/responses/Error" }
 
   /{db}/_local/{docid}:
     parameters:
@@ -556,6 +594,8 @@ paths:
             application/json:
               schema: { $ref: "#/components/schemas/Document" }
         "404": { $ref: "#/components/responses/Error" }
+        "401": { $ref: "#/components/responses/Error" }
+        "403": { $ref: "#/components/responses/Error" }
     put:
       tags: [documents]
       operationId: putLocalDocument
@@ -572,6 +612,9 @@ paths:
             application/json:
               schema: { $ref: "#/components/schemas/DocumentResult" }
         "409": { $ref: "#/components/responses/Error" }
+        "400": { $ref: "#/components/responses/Error" }
+        "401": { $ref: "#/components/responses/Error" }
+        "403": { $ref: "#/components/responses/Error" }
     delete:
       tags: [documents]
       operationId: deleteLocalDocument
@@ -587,6 +630,9 @@ paths:
             application/json:
               schema: { $ref: "#/components/schemas/DocumentResult" }
         "404": { $ref: "#/components/responses/Error" }
+        "401": { $ref: "#/components/responses/Error" }
+        "403": { $ref: "#/components/responses/Error" }
+        "409": { $ref: "#/components/responses/Error" }
 
   /{db}/_revs_diff:
     parameters:
@@ -608,6 +654,8 @@ paths:
             application/json:
               schema: { $ref: "#/components/schemas/RevsDiffResult" }
         "401": { $ref: "#/components/responses/Error" }
+        "400": { $ref: "#/components/responses/Error" }
+        "403": { $ref: "#/components/responses/Error" }
 
   /{db}/_bulk_get:
     parameters:
@@ -640,6 +688,8 @@ paths:
             application/json:
               schema: { $ref: "#/components/schemas/BulkGetResult" }
         "401": { $ref: "#/components/responses/Error" }
+        "400": { $ref: "#/components/responses/Error" }
+        "403": { $ref: "#/components/responses/Error" }
 
   /{db}/_security:
     parameters:
@@ -655,6 +705,7 @@ paths:
             application/json:
               schema: { $ref: "#/components/schemas/Security" }
         "401": { $ref: "#/components/responses/Error" }
+        "403": { $ref: "#/components/responses/Error" }
     put:
       tags: [security]
       operationId: putSecurity
@@ -671,6 +722,8 @@ paths:
             application/json:
               schema: { $ref: "#/components/schemas/Ok" }
         "401": { $ref: "#/components/responses/Error" }
+        "400": { $ref: "#/components/responses/Error" }
+        "403": { $ref: "#/components/responses/Error" }
 
   /{db}/_design/{ddoc}:
     parameters:
@@ -687,6 +740,8 @@ paths:
             application/json:
               schema: { $ref: "#/components/schemas/DesignDocument" }
         "404": { $ref: "#/components/responses/Error" }
+        "401": { $ref: "#/components/responses/Error" }
+        "403": { $ref: "#/components/responses/Error" }
     put:
       tags: [design-documents]
       operationId: putDesignDocument
@@ -703,6 +758,9 @@ paths:
             application/json:
               schema: { $ref: "#/components/schemas/DocumentResult" }
         "409": { $ref: "#/components/responses/Error" }
+        "400": { $ref: "#/components/responses/Error" }
+        "401": { $ref: "#/components/responses/Error" }
+        "403": { $ref: "#/components/responses/Error" }
     delete:
       tags: [design-documents]
       operationId: deleteDesignDocument
@@ -719,6 +777,9 @@ paths:
             application/json:
               schema: { $ref: "#/components/schemas/DocumentResult" }
         "404": { $ref: "#/components/responses/Error" }
+        "401": { $ref: "#/components/responses/Error" }
+        "403": { $ref: "#/components/responses/Error" }
+        "409": { $ref: "#/components/responses/Error" }
 
   /{db}/_partition/{partition}/_all_docs:
     parameters:
@@ -740,6 +801,8 @@ paths:
             application/json:
               schema: { $ref: "#/components/schemas/AllDocsResult" }
         "401": { $ref: "#/components/responses/Error" }
+        "400": { $ref: "#/components/responses/Error" }
+        "403": { $ref: "#/components/responses/Error" }
 
   /{db}/_partition/{partition}/_find:
     parameters:
@@ -761,6 +824,8 @@ paths:
             application/json:
               schema: { $ref: "#/components/schemas/FindResult" }
         "401": { $ref: "#/components/responses/Error" }
+        "400": { $ref: "#/components/responses/Error" }
+        "403": { $ref: "#/components/responses/Error" }
 
   /{db}/{docid}/{attname}:
     parameters:
@@ -785,6 +850,8 @@ paths:
             application/octet-stream:
               schema: { type: string, format: binary }
         "404": { $ref: "#/components/responses/Error" }
+        "401": { $ref: "#/components/responses/Error" }
+        "403": { $ref: "#/components/responses/Error" }
     put:
       tags: [attachments]
       operationId: putAttachment
@@ -806,6 +873,9 @@ paths:
             application/json:
               schema: { $ref: "#/components/schemas/DocumentResult" }
         "409": { $ref: "#/components/responses/Error" }
+        "400": { $ref: "#/components/responses/Error" }
+        "401": { $ref: "#/components/responses/Error" }
+        "403": { $ref: "#/components/responses/Error" }
     delete:
       tags: [attachments]
       operationId: deleteAttachment
@@ -822,6 +892,9 @@ paths:
             application/json:
               schema: { $ref: "#/components/schemas/DocumentResult" }
         "409": { $ref: "#/components/responses/Error" }
+        "401": { $ref: "#/components/responses/Error" }
+        "403": { $ref: "#/components/responses/Error" }
+        "404": { $ref: "#/components/responses/Error" }
 
 components:
   securitySchemes:
@@ -838,10 +911,10 @@ components:
       name: db
       in: path
       required: true
-      description: Database name
+      description: Database name. System databases (`_users`, `_replicator`, ...) start with `_`.
       schema:
         type: string
-        pattern: "^[a-z][a-z0-9_$()+/-]*$"
+        pattern: "^(_[a-z][a-z0-9_]*|[a-z][a-z0-9_$()+/-]*)$"
     DocId:
       name: docid
       in: path
@@ -1180,11 +1253,19 @@ components:
         keys:
           type: array
           items: {}
+        key: {}
         start_key: {}
         end_key: {}
+        startkey_docid: { type: string }
+        endkey_docid: { type: string }
+        inclusive_end: { type: boolean, default: true }
         limit: { type: integer, minimum: 0 }
         skip: { type: integer, minimum: 0 }
         descending: { type: boolean }
+        conflicts: { type: boolean }
+        attachments: { type: boolean }
+        stable: { type: boolean }
+        update_seq: { type: boolean }
         update:
           type: string
           enum: ["true", "false", lazy]
@@ -1267,8 +1348,22 @@ components:
             properties:
               map: { type: string }
               reduce: { type: string }
+              options:
+                type: object
+                additionalProperties: true
+        filters:
+          type: object
+          description: Filter function name to JavaScript source
+          additionalProperties: { type: string }
+        updates:
+          type: object
+          description: Update handler name to JavaScript source
+          additionalProperties: { type: string }
+        validate_doc_update: { type: string }
+        autoupdate: { type: boolean }
         options:
           type: object
+          description: "Design document options, e.g. `{\"partitioned\": false}`"
           additionalProperties: true
 
     ReplicationRequest:
@@ -1276,7 +1371,7 @@ components:
       required: [source, target]
       properties:
         source:
-          description: Database URL, or an object with url and auth
+          description: "Object with `url` and optional `auth` (e.g. `{\"basic\": {\"username\": ..., \"password\": ...}}`)"
           type: object
           additionalProperties: true
           properties:
@@ -1303,11 +1398,25 @@ components:
         session_id: { type: string }
         source_last_seq: { type: string }
         _local_id: { type: string }
+        no_changes: { type: boolean }
+        replication_id_version: { type: integer }
         history:
           type: array
           items:
             type: object
             additionalProperties: true
+            properties:
+              session_id: { type: string }
+              start_time: { type: string }
+              end_time: { type: string }
+              start_last_seq: { type: string }
+              end_last_seq: { type: string }
+              recorded_seq: { type: string }
+              missing_checked: { type: integer }
+              missing_found: { type: integer }
+              docs_read: { type: integer }
+              docs_written: { type: integer }
+              doc_write_failures: { type: integer }
 
     RevsDiffRequest:
       type: object
