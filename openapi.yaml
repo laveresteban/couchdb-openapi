@@ -4,7 +4,7 @@ info:
   description: |
     OpenAPI description of the Apache CouchDB 3.x HTTP API.
     This is the single source of truth for all generated CouchDB SDKs.
-  version: 0.3.0
+  version: 0.5.0
   license:
     name: Apache-2.0
     url: https://www.apache.org/licenses/LICENSE-2.0
@@ -463,65 +463,58 @@ paths:
   /{db}/_changes:
     parameters:
       - { $ref: "#/components/parameters/Db" }
+      - name: feed
+        in: query
+        description: "`normal`/`longpoll` return one JSON object; `continuous` streams newline-delimited change objects. `eventsource` is not supported."
+        schema: { type: string, enum: [normal, longpoll, continuous], default: normal }
+      - name: since
+        in: query
+        description: Start after this sequence; `now` skips existing changes.
+        schema: { type: string, default: "0" }
+      - name: include_docs
+        in: query
+        schema: { type: boolean, default: false }
+      - name: conflicts
+        in: query
+        description: Include `_conflicts` in docs; requires `include_docs`.
+        schema: { type: boolean, default: false }
+      - name: attachments
+        in: query
+        schema: { type: boolean, default: false }
+      - name: style
+        in: query
+        description: "`all_docs` returns all leaf revisions, not just the winner."
+        schema: { type: string, enum: [main_only, all_docs], default: main_only }
+      - name: filter
+        in: query
+        description: "`_doc_ids`, `_selector`, `_design`, `_view` or `ddoc/filter`."
+        schema: { type: string }
+      - name: view
+        in: query
+        description: "`ddoc/view` used with `filter=_view`."
+        schema: { type: string }
+      - name: doc_ids
+        in: query
+        description: JSON array of ids, used with `filter=_doc_ids`.
+        schema: { type: string }
+      - { $ref: "#/components/parameters/Limit" }
+      - name: timeout
+        in: query
+        description: Longpoll timeout in milliseconds
+        schema: { type: integer, minimum: 0 }
+      - name: heartbeat
+        in: query
+        description: Milliseconds between keep-alive newlines.
+        schema: { type: integer, minimum: 0 }
+      - name: seq_interval
+        in: query
+        description: Only compute `seq` every N rows; others are null. Faster on clusters.
+        schema: { type: integer, minimum: 1 }
+      - { $ref: "#/components/parameters/Descending" }
     get:
       tags: [changes]
       operationId: getChanges
-      summary: Database changes feed (normal or longpoll)
-      parameters:
-        - name: feed
-          in: query
-          schema: { type: string, enum: [normal, longpoll], default: normal }
-        - name: since
-          in: query
-          schema: { type: string, default: "0" }
-        - { $ref: "#/components/parameters/ChangesStyle" }
-        - { $ref: "#/components/parameters/Heartbeat" }
-        - name: include_docs
-          in: query
-          schema: { type: boolean, default: false }
-        - { $ref: "#/components/parameters/Limit" }
-        - name: timeout
-          in: query
-          description: Longpoll timeout in milliseconds
-          schema: { type: integer, minimum: 0 }
-        - { $ref: "#/components/parameters/Descending" }
-      responses:
-        "200":
-          description: Changes
-          content:
-            application/json:
-              schema: { $ref: "#/components/schemas/ChangesResult" }
-        "404": { $ref: "#/components/responses/Error" }
-    post:
-      tags: [changes]
-      operationId: postChanges
-      summary: Filtered changes feed (by document ids or selector)
-      parameters:
-        - name: filter
-          in: query
-          required: true
-          schema: { type: string, enum: [_doc_ids, _selector] }
-        - name: feed
-          in: query
-          schema: { type: string, enum: [normal, longpoll], default: normal }
-        - name: since
-          in: query
-          schema: { type: string, default: "0" }
-        - name: include_docs
-          in: query
-          schema: { type: boolean, default: false }
-        - { $ref: "#/components/parameters/Limit" }
-        - name: timeout
-          in: query
-          description: Longpoll timeout in milliseconds
-          schema: { type: integer, minimum: 0 }
-        - { $ref: "#/components/parameters/ChangesStyle" }
-        - { $ref: "#/components/parameters/Heartbeat" }
-      requestBody:
-        required: true
-        content:
-          application/json:
-            schema: { $ref: "#/components/schemas/ChangesFilter" }
+      summary: Database changes feed (normal, longpoll or continuous)
       responses:
         "200":
           description: Changes
@@ -529,6 +522,70 @@ paths:
             application/json:
               schema: { $ref: "#/components/schemas/ChangesResult" }
         "400": { $ref: "#/components/responses/Error" }
+        "404": { $ref: "#/components/responses/Error" }
+    post:
+      tags: [changes]
+      operationId: postChanges
+      summary: Changes feed filtered by a body (`_doc_ids` or `_selector`)
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/ChangesQuery" }
+      responses:
+        "200":
+          description: Changes
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/ChangesResult" }
+        "400": { $ref: "#/components/responses/Error" }
+        "404": { $ref: "#/components/responses/Error" }
+
+  /{db}/_local/{docid}:
+    parameters:
+      - { $ref: "#/components/parameters/Db" }
+      - { $ref: "#/components/parameters/DocId" }
+    get:
+      tags: [documents]
+      operationId: getLocalDocument
+      summary: Get a local (non-replicated) document
+      responses:
+        "200":
+          description: The document
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Document" }
+        "404": { $ref: "#/components/responses/Error" }
+    put:
+      tags: [documents]
+      operationId: putLocalDocument
+      summary: Create or update a local document
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/Document" }
+      responses:
+        "201":
+          description: Document written
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/DocumentResult" }
+        "409": { $ref: "#/components/responses/Error" }
+    delete:
+      tags: [documents]
+      operationId: deleteLocalDocument
+      summary: Delete a local document
+      parameters:
+        - name: rev
+          in: query
+          schema: { type: string }
+      responses:
+        "200":
+          description: Document deleted
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/DocumentResult" }
         "404": { $ref: "#/components/responses/Error" }
 
   /{db}/_revs_diff:
@@ -583,54 +640,6 @@ paths:
             application/json:
               schema: { $ref: "#/components/schemas/BulkGetResult" }
         "401": { $ref: "#/components/responses/Error" }
-
-  /{db}/_local/{docid}:
-    parameters:
-      - { $ref: "#/components/parameters/Db" }
-      - { $ref: "#/components/parameters/DocId" }
-    get:
-      tags: [replication]
-      operationId: getLocalDocument
-      summary: Get a local (non-replicated) document
-      description: Local documents hold replication checkpoints. They are not in `_changes` or `_all_docs`.
-      responses:
-        "200":
-          description: The local document
-          content:
-            application/json:
-              schema: { $ref: "#/components/schemas/Document" }
-        "404": { $ref: "#/components/responses/Error" }
-    put:
-      tags: [replication]
-      operationId: putLocalDocument
-      summary: Create or update a local document
-      requestBody:
-        required: true
-        content:
-          application/json:
-            schema: { $ref: "#/components/schemas/Document" }
-      responses:
-        "201":
-          description: Local document written
-          content:
-            application/json:
-              schema: { $ref: "#/components/schemas/DocumentResult" }
-        "409": { $ref: "#/components/responses/Error" }
-    delete:
-      tags: [replication]
-      operationId: deleteLocalDocument
-      summary: Delete a local document
-      parameters:
-        - name: rev
-          in: query
-          schema: { type: string }
-      responses:
-        "200":
-          description: Local document deleted
-          content:
-            application/json:
-              schema: { $ref: "#/components/schemas/DocumentResult" }
-        "404": { $ref: "#/components/responses/Error" }
 
   /{db}/_security:
     parameters:
@@ -861,16 +870,6 @@ components:
     Limit:
       name: limit
       in: query
-      schema: { type: integer, minimum: 0 }
-    ChangesStyle:
-      name: style
-      in: query
-      description: "`all_docs` lists every leaf revision, including conflicts"
-      schema: { type: string, enum: [main_only, all_docs], default: main_only }
-    Heartbeat:
-      name: heartbeat
-      in: query
-      description: Milliseconds between empty lines sent to keep a longpoll alive
       schema: { type: integer, minimum: 0 }
     Skip:
       name: skip
@@ -1218,7 +1217,7 @@ components:
             type: object
             properties:
               id: { type: string }
-              seq: { type: string }
+              seq: { type: string, nullable: true }
               deleted: { type: boolean }
               changes:
                 type: array
@@ -1227,6 +1226,16 @@ components:
                   properties:
                     rev: { type: string }
               doc: { $ref: "#/components/schemas/Document" }
+
+    ChangesQuery:
+      type: object
+      properties:
+        doc_ids:
+          type: array
+          items: { type: string }
+        selector:
+          type: object
+          additionalProperties: true
 
     SecurityMembers:
       type: object
@@ -1359,14 +1368,3 @@ components:
                         rev: { type: string }
                         error: { type: string }
                         reason: { type: string }
-
-    ChangesFilter:
-      type: object
-      description: Use `doc_ids` with `filter=_doc_ids`, `selector` with `filter=_selector`.
-      properties:
-        doc_ids:
-          type: array
-          items: { type: string }
-        selector:
-          type: object
-          additionalProperties: true
