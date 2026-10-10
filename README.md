@@ -32,10 +32,13 @@ npx @stoplight/spectral-cli@6 lint openapi.yaml
 
 Server, `_session` auth, databases, documents, `_bulk_docs`, `_all_docs`,
 Mango `_find`/`_index`, design documents and views, attachments, `_changes`
-(normal/longpoll), `_replicate`, `_security`, and partitioned queries.
+(normal, longpoll and continuous; `style=all_docs`; `_doc_ids`/`_selector` filters),
+replication primitives (`_revs_diff`, `_bulk_get`, `_local` docs,
+`new_edits:false`, `_revisions`), `_replicate`, `_security`, and partitioned queries.
 
-Not yet covered: continuous/eventsource `_changes` (streaming), `_scheduler`,
-`_node`/config, `_purge`, `_revs_diff`, `_explain`, search.
+Not yet covered: eventsource `_changes`, `_scheduler`,
+`_node`/config, `_purge`, `_explain`, search, `open_revs` on GET document
+(returns a different response shape; use `_bulk_get`).
 
 Every change here should come with a scenario in
 `couchdb-sdk-generator/conformance/specs` so all SDKs are tested against it.

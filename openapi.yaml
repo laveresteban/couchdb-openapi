@@ -4,7 +4,7 @@ info:
   description: |
     OpenAPI description of the Apache CouchDB 3.x HTTP API.
     This is the single source of truth for all generated CouchDB SDKs.
-  version: 0.4.0
+  version: 0.5.0
   license:
     name: Apache-2.0
     url: https://www.apache.org/licenses/LICENSE-2.0
@@ -348,6 +348,14 @@ paths:
         - name: conflicts
           in: query
           schema: { type: boolean, default: false }
+        - name: revs
+          in: query
+          description: Include the revision history as `_revisions`
+          schema: { type: boolean, default: false }
+        - name: latest
+          in: query
+          description: With `rev`, return the latest leaf revision on that branch
+          schema: { type: boolean, default: false }
       responses:
         "200":
           description: The document
@@ -579,6 +587,59 @@ paths:
             application/json:
               schema: { $ref: "#/components/schemas/DocumentResult" }
         "404": { $ref: "#/components/responses/Error" }
+
+  /{db}/_revs_diff:
+    parameters:
+      - { $ref: "#/components/parameters/Db" }
+    post:
+      tags: [replication]
+      operationId: postRevsDiff
+      summary: Find which revisions the database does not have
+      description: Used by replicators to skip revisions the target already stores.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/RevsDiffRequest" }
+      responses:
+        "200":
+          description: Missing revisions, keyed by document id
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/RevsDiffResult" }
+        "401": { $ref: "#/components/responses/Error" }
+
+  /{db}/_bulk_get:
+    parameters:
+      - { $ref: "#/components/parameters/Db" }
+    post:
+      tags: [replication]
+      operationId: postBulkGet
+      summary: Fetch many documents and revisions in one request
+      parameters:
+        - name: revs
+          in: query
+          description: Include `_revisions` in each returned document
+          schema: { type: boolean, default: false }
+        - name: latest
+          in: query
+          schema: { type: boolean, default: false }
+        - name: attachments
+          in: query
+          description: Include attachment content as base64 `data`. With `atts_since`, only attachments newer than those revisions are sent; the rest come back as stubs.
+          schema: { type: boolean, default: false }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/BulkGetRequest" }
+      responses:
+        "200":
+          description: One result per requested document
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/BulkGetResult" }
+        "401": { $ref: "#/components/responses/Error" }
 
   /{db}/_security:
     parameters:
@@ -941,10 +1002,34 @@ components:
         _deleted: { type: boolean }
         _attachments:
           type: object
-          additionalProperties: true
+          additionalProperties: { $ref: "#/components/schemas/Attachment" }
         _conflicts:
           type: array
           items: { type: string }
+        _revisions: { $ref: "#/components/schemas/Revisions" }
+
+    Revisions:
+      type: object
+      description: Revision history, newest first. Full rev ids are `{start - i}-{ids[i]}`.
+      required: [start, ids]
+      properties:
+        start: { type: integer }
+        ids:
+          type: array
+          items: { type: string }
+
+    Attachment:
+      type: object
+      properties:
+        content_type: { type: string }
+        data: { type: string, format: byte, description: Base64 body (inline only) }
+        digest: { type: string }
+        length: { type: integer }
+        revpos: { type: integer }
+        stub: { type: boolean }
+        follows: { type: boolean }
+        encoding: { type: string }
+        encoded_length: { type: integer }
 
     DocumentResult:
       type: object
@@ -1223,3 +1308,63 @@ components:
           items:
             type: object
             additionalProperties: true
+
+    RevsDiffRequest:
+      type: object
+      description: Document id mapped to the revisions to check
+      additionalProperties:
+        type: array
+        items: { type: string }
+
+    RevsDiffResult:
+      type: object
+      description: Document id mapped to revisions the database is missing
+      additionalProperties:
+        type: object
+        properties:
+          missing:
+            type: array
+            items: { type: string }
+          possible_ancestors:
+            type: array
+            items: { type: string }
+
+    BulkGetRequest:
+      type: object
+      required: [docs]
+      properties:
+        docs:
+          type: array
+          items:
+            type: object
+            required: [id]
+            properties:
+              id: { type: string }
+              rev: { type: string }
+              atts_since:
+                type: array
+                items: { type: string }
+
+    BulkGetResult:
+      type: object
+      required: [results]
+      properties:
+        results:
+          type: array
+          items:
+            type: object
+            properties:
+              id: { type: string }
+              docs:
+                type: array
+                items:
+                  type: object
+                  properties:
+                    ok: { $ref: "#/components/schemas/Document" }
+                    error:
+                      type: object
+                      properties:
+                        id: { type: string }
+                        rev: { type: string }
+                        error: { type: string }
+                        reason: { type: string }
