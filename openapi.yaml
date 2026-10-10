@@ -4,7 +4,7 @@ info:
   description: |
     OpenAPI description of the Apache CouchDB 3.x HTTP API.
     This is the single source of truth for all generated CouchDB SDKs.
-  version: 0.6.0
+  version: 0.7.0
   license:
     name: Apache-2.0
     url: https://www.apache.org/licenses/LICENSE-2.0
@@ -16,6 +16,7 @@ servers:
 security:
   - basicAuth: []
   - cookieAuth: []
+  - bearerAuth: []
 tags:
   - name: server
     description: Server-level information and utilities
@@ -39,6 +40,8 @@ tags:
     description: Per-database admins and members
   - name: partitions
     description: Queries scoped to a partition of a partitioned database
+  - name: maintenance
+    description: Compaction, purging, query plans and server tasks
 
 paths:
   /:
@@ -246,6 +249,36 @@ paths:
   /{db}/_all_docs:
     parameters:
       - { $ref: "#/components/parameters/Db" }
+    get:
+      tags: [query]
+      operationId: getAllDocs
+      summary: Query all documents (key range in the query string)
+      parameters:
+        - { $ref: "#/components/parameters/IncludeDocs" }
+        - { $ref: "#/components/parameters/JsonKey" }
+        - { $ref: "#/components/parameters/JsonKeys" }
+        - { $ref: "#/components/parameters/JsonStartKey" }
+        - { $ref: "#/components/parameters/JsonEndKey" }
+        - { $ref: "#/components/parameters/InclusiveEnd" }
+        - { $ref: "#/components/parameters/Limit" }
+        - { $ref: "#/components/parameters/Skip" }
+        - { $ref: "#/components/parameters/Descending" }
+        - name: conflicts
+          in: query
+          schema: { type: boolean, default: false }
+        - name: update_seq
+          in: query
+          schema: { type: boolean, default: false }
+      responses:
+        "200":
+          description: Rows
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/AllDocsResult" }
+        "400": { $ref: "#/components/responses/Error" }
+        "401": { $ref: "#/components/responses/Error" }
+        "403": { $ref: "#/components/responses/Error" }
+        "404": { $ref: "#/components/responses/Error" }
     post:
       tags: [query]
       operationId: postAllDocs
@@ -371,16 +404,36 @@ paths:
           in: query
           description: With `rev`, return the latest leaf revision on that branch
           schema: { type: boolean, default: false }
+        - { $ref: "#/components/parameters/IfNoneMatch" }
       responses:
         "200":
           description: The document
+          headers:
+            ETag: { $ref: "#/components/headers/ETag" }
           content:
             application/json:
               schema: { $ref: "#/components/schemas/Document" }
+        "304": { description: Not modified since the `If-None-Match` ETag }
         "404": { $ref: "#/components/responses/Error" }
         "400": { $ref: "#/components/responses/Error" }
         "401": { $ref: "#/components/responses/Error" }
         "403": { $ref: "#/components/responses/Error" }
+    head:
+      tags: [documents]
+      operationId: headDocument
+      summary: Check that a document exists and get its current revision
+      description: The `ETag` header holds the winning revision, quoted.
+      parameters:
+        - { $ref: "#/components/parameters/IfNoneMatch" }
+      responses:
+        "200":
+          description: Document exists
+          headers:
+            ETag: { $ref: "#/components/headers/ETag" }
+        "304": { description: Not modified since the `If-None-Match` ETag }
+        "401": { description: Authentication required }
+        "403": { description: Not allowed }
+        "404": { description: Document does not exist }
     put:
       tags: [documents]
       operationId: putDocument
@@ -443,6 +496,48 @@ paths:
         in: path
         required: true
         schema: { type: string }
+    get:
+      tags: [design-documents]
+      operationId: getView
+      summary: Query a MapReduce view (keys in the query string)
+      parameters:
+        - { $ref: "#/components/parameters/IncludeDocs" }
+        - { $ref: "#/components/parameters/JsonKey" }
+        - { $ref: "#/components/parameters/JsonKeys" }
+        - { $ref: "#/components/parameters/JsonStartKey" }
+        - { $ref: "#/components/parameters/JsonEndKey" }
+        - { $ref: "#/components/parameters/InclusiveEnd" }
+        - { $ref: "#/components/parameters/Limit" }
+        - { $ref: "#/components/parameters/Skip" }
+        - { $ref: "#/components/parameters/Descending" }
+        - name: reduce
+          in: query
+          schema: { type: boolean }
+        - name: group
+          in: query
+          schema: { type: boolean }
+        - name: group_level
+          in: query
+          schema: { type: integer, minimum: 0 }
+        - name: update
+          in: query
+          schema: { type: string, enum: ["true", "false", lazy] }
+        - name: stable
+          in: query
+          schema: { type: boolean }
+        - name: update_seq
+          in: query
+          schema: { type: boolean }
+      responses:
+        "200":
+          description: View rows
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/ViewResult" }
+        "400": { $ref: "#/components/responses/Error" }
+        "401": { $ref: "#/components/responses/Error" }
+        "403": { $ref: "#/components/responses/Error" }
+        "404": { $ref: "#/components/responses/Error" }
     post:
       tags: [design-documents]
       operationId: postView
@@ -830,7 +925,7 @@ paths:
   /{db}/{docid}/{attname}:
     parameters:
       - { $ref: "#/components/parameters/Db" }
-      - { $ref: "#/components/parameters/DocId" }
+      - { $ref: "#/components/parameters/AttDocId" }
       - name: attname
         in: path
         required: true
@@ -839,16 +934,23 @@ paths:
       tags: [attachments]
       operationId: getAttachment
       summary: Download an attachment
+      description: The response `Content-Type` is the attachment's own content type.
       parameters:
         - name: rev
           in: query
           schema: { type: string }
+        - { $ref: "#/components/parameters/IfNoneMatch" }
       responses:
         "200":
           description: Attachment bytes
+          headers:
+            ETag: { $ref: "#/components/headers/ETag" }
           content:
             application/octet-stream:
               schema: { type: string, format: binary }
+            "*/*":
+              schema: { type: string, format: binary }
+        "304": { description: Not modified since the `If-None-Match` ETag }
         "404": { $ref: "#/components/responses/Error" }
         "401": { $ref: "#/components/responses/Error" }
         "403": { $ref: "#/components/responses/Error" }
@@ -856,6 +958,10 @@ paths:
       tags: [attachments]
       operationId: putAttachment
       summary: Upload an attachment
+      description: |
+        CouchDB stores the request's `Content-Type` as the attachment's
+        `content_type`, so send the real type (`image/png`, ...). Any media
+        type is accepted; `application/octet-stream` is only the default.
       parameters:
         - name: rev
           in: query
@@ -865,6 +971,8 @@ paths:
         required: true
         content:
           application/octet-stream:
+            schema: { type: string, format: binary }
+          "*/*":
             schema: { type: string, format: binary }
       responses:
         "201":
@@ -896,6 +1004,265 @@ paths:
         "403": { $ref: "#/components/responses/Error" }
         "404": { $ref: "#/components/responses/Error" }
 
+  /_dbs_info:
+    post:
+      tags: [databases]
+      operationId: postDbsInfo
+      summary: Information about several databases at once
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [keys]
+              properties:
+                keys:
+                  type: array
+                  items: { type: string }
+      responses:
+        "200":
+          description: One entry per requested name, in order
+          content:
+            application/json:
+              schema:
+                type: array
+                items: { $ref: "#/components/schemas/DbsInfoEntry" }
+        "400": { $ref: "#/components/responses/Error" }
+        "401": { $ref: "#/components/responses/Error" }
+
+  /{db}/_design_docs:
+    parameters:
+      - { $ref: "#/components/parameters/Db" }
+    get:
+      tags: [query]
+      operationId: getDesignDocs
+      summary: List design documents
+      parameters:
+        - { $ref: "#/components/parameters/IncludeDocs" }
+        - { $ref: "#/components/parameters/JsonStartKey" }
+        - { $ref: "#/components/parameters/JsonEndKey" }
+        - { $ref: "#/components/parameters/Limit" }
+        - { $ref: "#/components/parameters/Skip" }
+        - { $ref: "#/components/parameters/Descending" }
+      responses:
+        "200":
+          description: Rows
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/AllDocsResult" }
+        "401": { $ref: "#/components/responses/Error" }
+        "403": { $ref: "#/components/responses/Error" }
+        "404": { $ref: "#/components/responses/Error" }
+
+  /{db}/_local_docs:
+    parameters:
+      - { $ref: "#/components/parameters/Db" }
+    get:
+      tags: [query]
+      operationId: getLocalDocs
+      summary: List local (non-replicated) documents
+      parameters:
+        - { $ref: "#/components/parameters/IncludeDocs" }
+        - { $ref: "#/components/parameters/JsonStartKey" }
+        - { $ref: "#/components/parameters/JsonEndKey" }
+        - { $ref: "#/components/parameters/Limit" }
+        - { $ref: "#/components/parameters/Skip" }
+        - { $ref: "#/components/parameters/Descending" }
+      responses:
+        "200":
+          description: Rows (`total_rows` and `offset` are always null here)
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/LocalDocsResult" }
+        "401": { $ref: "#/components/responses/Error" }
+        "403": { $ref: "#/components/responses/Error" }
+        "404": { $ref: "#/components/responses/Error" }
+
+  /{db}/_purge:
+    parameters:
+      - { $ref: "#/components/parameters/Db" }
+    post:
+      tags: [maintenance]
+      operationId: postPurge
+      summary: Permanently remove revisions
+      description: |
+        Unlike deletion, purged revisions leave no tombstone and don't
+        replicate. Body maps document ids to the revisions to remove.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              additionalProperties:
+                type: array
+                items: { type: string }
+      responses:
+        "201":
+          description: Purged revisions, keyed by document id
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/PurgeResult" }
+        "202":
+          description: Purge accepted, quorum not met
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/PurgeResult" }
+        "400": { $ref: "#/components/responses/Error" }
+        "401": { $ref: "#/components/responses/Error" }
+        "403": { $ref: "#/components/responses/Error" }
+
+  /{db}/_explain:
+    parameters:
+      - { $ref: "#/components/parameters/Db" }
+    post:
+      tags: [query]
+      operationId: postExplain
+      summary: Show which index a Mango query would use
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/FindQuery" }
+      responses:
+        "200":
+          description: Query plan
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/ExplainResult" }
+        "400": { $ref: "#/components/responses/Error" }
+        "401": { $ref: "#/components/responses/Error" }
+        "403": { $ref: "#/components/responses/Error" }
+
+  /{db}/_compact:
+    parameters:
+      - { $ref: "#/components/parameters/Db" }
+    post:
+      tags: [maintenance]
+      operationId: postCompact
+      summary: Start compacting the database
+      description: Runs in the background; check `compact_running` in the database info.
+      requestBody:
+        required: false
+        content:
+          application/json:
+            schema: { type: object }
+      responses:
+        "202":
+          description: Compaction started
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Ok" }
+        "400": { $ref: "#/components/responses/Error" }
+        "401": { $ref: "#/components/responses/Error" }
+        "403": { $ref: "#/components/responses/Error" }
+        "404": { $ref: "#/components/responses/Error" }
+
+  /{db}/_view_cleanup:
+    parameters:
+      - { $ref: "#/components/parameters/Db" }
+    post:
+      tags: [maintenance]
+      operationId: postViewCleanup
+      summary: Remove index files no design document uses anymore
+      requestBody:
+        required: false
+        content:
+          application/json:
+            schema: { type: object }
+      responses:
+        "202":
+          description: Cleanup started
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Ok" }
+        "400": { $ref: "#/components/responses/Error" }
+        "401": { $ref: "#/components/responses/Error" }
+        "403": { $ref: "#/components/responses/Error" }
+        "404": { $ref: "#/components/responses/Error" }
+
+  /_active_tasks:
+    get:
+      tags: [maintenance]
+      operationId: getActiveTasks
+      summary: Running tasks (compaction, indexing, replication)
+      responses:
+        "200":
+          description: Tasks
+          content:
+            application/json:
+              schema:
+                type: array
+                items: { $ref: "#/components/schemas/ActiveTask" }
+        "401": { $ref: "#/components/responses/Error" }
+        "403": { $ref: "#/components/responses/Error" }
+
+  /_scheduler/jobs:
+    get:
+      tags: [replication]
+      operationId: getSchedulerJobs
+      summary: Replication jobs the scheduler is running
+      parameters:
+        - { $ref: "#/components/parameters/Limit" }
+        - { $ref: "#/components/parameters/Skip" }
+      responses:
+        "200":
+          description: Jobs
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/SchedulerJobs" }
+        "401": { $ref: "#/components/responses/Error" }
+        "403": { $ref: "#/components/responses/Error" }
+
+  /_scheduler/docs:
+    get:
+      tags: [replication]
+      operationId: getSchedulerDocs
+      summary: State of replications defined in `_replicator` databases
+      parameters:
+        - { $ref: "#/components/parameters/Limit" }
+        - { $ref: "#/components/parameters/Skip" }
+      responses:
+        "200":
+          description: Replication documents
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/SchedulerDocs" }
+        "401": { $ref: "#/components/responses/Error" }
+        "403": { $ref: "#/components/responses/Error" }
+
+  /_db_updates:
+    get:
+      tags: [server]
+      operationId: getDbUpdates
+      summary: Feed of database creations, updates and deletions
+      description: Needs the `_global_changes` database.
+      parameters:
+        - name: feed
+          in: query
+          description: "`continuous` streams newline-delimited JSON; read the raw response."
+          schema: { type: string, enum: [normal, longpoll, continuous], default: normal }
+        - name: since
+          in: query
+          schema: { type: string, default: "0" }
+        - name: timeout
+          in: query
+          schema: { type: integer, minimum: 0 }
+        - name: heartbeat
+          in: query
+          schema: { type: integer, minimum: 0 }
+        - { $ref: "#/components/parameters/Limit" }
+        - { $ref: "#/components/parameters/Descending" }
+      responses:
+        "200":
+          description: Database events
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/DbUpdatesResult" }
+        "401": { $ref: "#/components/responses/Error" }
+        "403": { $ref: "#/components/responses/Error" }
+
 components:
   securitySchemes:
     basicAuth:
@@ -905,6 +1272,11 @@ components:
       type: apiKey
       in: cookie
       name: AuthSession
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+      description: JWT auth; needs `jwt_authentication` enabled on the server.
 
   parameters:
     Db:
@@ -931,6 +1303,47 @@ components:
       in: path
       required: true
       schema: { type: string }
+    IfNoneMatch:
+      name: If-None-Match
+      in: header
+      description: An `ETag` from an earlier response; the server answers 304 if it still matches.
+      schema: { type: string }
+    AttDocId:
+      name: docid
+      in: path
+      required: true
+      description: |
+        Document id. Never starts with `_` on this path: `/{db}/_design/{ddoc}`
+        and `/{db}/_local/{docid}` are separate operations.
+      schema: { type: string, pattern: "^[^_]" }
+    JsonKey:
+      name: key
+      in: query
+      description: JSON-encoded key, e.g. `"abc"` (with quotes) or `[1,2]`.
+      schema: { type: string }
+    JsonStartKey:
+      name: start_key
+      in: query
+      description: JSON-encoded key to start at.
+      schema: { type: string }
+    JsonEndKey:
+      name: end_key
+      in: query
+      description: JSON-encoded key to end at.
+      schema: { type: string }
+    JsonKeys:
+      name: keys
+      in: query
+      description: JSON-encoded array of keys.
+      schema: { type: string }
+    IncludeDocs:
+      name: include_docs
+      in: query
+      schema: { type: boolean, default: false }
+    InclusiveEnd:
+      name: inclusive_end
+      in: query
+      schema: { type: boolean, default: true }
     IfMatch:
       name: If-Match
       in: header
@@ -948,6 +1361,11 @@ components:
       name: skip
       in: query
       schema: { type: integer, minimum: 0, default: 0 }
+
+  headers:
+    ETag:
+      description: Current revision (documents) or content digest (attachments), quoted.
+      schema: { type: string }
 
   responses:
     Error:
@@ -1370,17 +1788,8 @@ components:
       type: object
       required: [source, target]
       properties:
-        source:
-          description: "Object with `url` and optional `auth` (e.g. `{\"basic\": {\"username\": ..., \"password\": ...}}`)"
-          type: object
-          additionalProperties: true
-          properties:
-            url: { type: string }
-        target:
-          type: object
-          additionalProperties: true
-          properties:
-            url: { type: string }
+        source: { $ref: "#/components/schemas/ReplicationEndpoint" }
+        target: { $ref: "#/components/schemas/ReplicationEndpoint" }
         create_target: { type: boolean }
         continuous: { type: boolean }
         cancel: { type: boolean }
@@ -1390,6 +1799,12 @@ components:
         selector:
           type: object
           additionalProperties: true
+
+    ReplicationEndpoint:
+      description: |
+        A database URL (string), or an object with `url` and optional `auth`
+        (e.g. `{"basic": {"username": ..., "password": ...}}`). Left untyped on
+        purpose: `oneOf: [string, object]` breaks typescript-fetch.
 
     ReplicationResult:
       type: object
@@ -1480,3 +1895,135 @@ components:
                         rev: { type: string }
                         error: { type: string }
                         reason: { type: string }
+
+    DbsInfoEntry:
+      type: object
+      required: [key]
+      properties:
+        key: { type: string }
+        info: { $ref: "#/components/schemas/DatabaseInformation" }
+        error: { type: string }
+
+    LocalDocsResult:
+      type: object
+      required: [rows]
+      properties:
+        total_rows: { type: integer, nullable: true }
+        offset: { type: integer, nullable: true }
+        rows:
+          type: array
+          items:
+            type: object
+            properties:
+              id: { type: string }
+              key: { type: string }
+              value:
+                type: object
+                properties:
+                  rev: { type: string }
+              doc: { $ref: "#/components/schemas/Document" }
+
+    PurgeResult:
+      type: object
+      required: [purged]
+      properties:
+        purge_seq: { type: string, nullable: true }
+        purged:
+          type: object
+          additionalProperties:
+            type: array
+            items: { type: string }
+
+    ExplainResult:
+      type: object
+      additionalProperties: true
+      properties:
+        dbname: { type: string }
+        index:
+          type: object
+          properties:
+            ddoc: { type: string, nullable: true }
+            name: { type: string }
+            type: { type: string }
+            def:
+              type: object
+              additionalProperties: true
+        selector:
+          type: object
+          additionalProperties: true
+        opts:
+          type: object
+          additionalProperties: true
+        limit: { type: integer }
+        skip: { type: integer }
+        fields:
+          description: '`"all_fields"` or a list of field names'
+
+    ActiveTask:
+      type: object
+      additionalProperties: true
+      properties:
+        type: { type: string }
+        database: { type: string }
+        node: { type: string }
+        pid: { type: string }
+        progress: { type: integer }
+        started_on: { type: integer }
+        updated_on: { type: integer }
+
+    SchedulerJobs:
+      type: object
+      required: [jobs]
+      properties:
+        total_rows: { type: integer }
+        offset: { type: integer }
+        jobs:
+          type: array
+          items:
+            type: object
+            additionalProperties: true
+            properties:
+              id: { type: string }
+              database: { type: string, nullable: true }
+              doc_id: { type: string, nullable: true }
+              source: { type: string }
+              target: { type: string }
+              user: { type: string, nullable: true }
+              node: { type: string }
+              pid: { type: string }
+              start_time: { type: string }
+
+    SchedulerDocs:
+      type: object
+      required: [docs]
+      properties:
+        total_rows: { type: integer }
+        offset: { type: integer }
+        docs:
+          type: array
+          items:
+            type: object
+            additionalProperties: true
+            properties:
+              database: { type: string }
+              doc_id: { type: string }
+              id: { type: string, nullable: true }
+              state: { type: string, nullable: true }
+              source: { type: string }
+              target: { type: string }
+              error_count: { type: integer }
+              last_updated: { type: string }
+
+    DbUpdatesResult:
+      type: object
+      required: [results]
+      properties:
+        last_seq: { type: string }
+        results:
+          type: array
+          items:
+            type: object
+            properties:
+              db_name: { type: string }
+              type: { type: string, description: "`created`, `updated` or `deleted`" }
+              seq: { type: string }

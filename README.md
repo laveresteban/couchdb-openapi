@@ -30,15 +30,20 @@ npx @stoplight/spectral-cli@6 lint openapi.yaml
 
 ## Coverage
 
-Server, `_session` auth, databases, documents, `_bulk_docs`, `_all_docs`,
-Mango `_find`/`_index`, design documents and views, attachments, `_changes`
-(normal, longpoll and continuous; `style=all_docs`; `_doc_ids`/`_selector` filters),
-replication primitives (`_revs_diff`, `_bulk_get`, `_local` docs,
-`new_edits:false`, `_revisions`), `_replicate`, `_security`, and partitioned queries.
+Server (`_up`, `_uuids`, `_all_dbs`, `_dbs_info`, `_db_updates`,
+`_active_tasks`), auth (basic, `_session` cookie, JWT bearer), databases,
+documents (`HEAD`, `If-None-Match`/`ETag`), `_bulk_docs`, `_all_docs` (GET and
+POST), `_design_docs`, `_local_docs`, Mango `_find`/`_index`/`_explain`, design
+documents and views (GET and POST), attachments (any content type), `_changes`
+(normal, longpoll and continuous; `style=all_docs`; `_doc_ids`/`_selector`
+filters), replication primitives (`_revs_diff`, `_bulk_get`, `_local` docs,
+`new_edits:false`, `_revisions`), `_replicate` (URL or endpoint object),
+`_scheduler/jobs` and `/docs`, `_security`, `_compact`, `_view_cleanup`,
+`_purge`, and partitioned queries.
 
-Not yet covered: eventsource `_changes`, `_scheduler`,
-`_node`/config, `_purge`, `_explain`, search, `open_revs` on GET document
-(returns a different response shape; use `_bulk_get`).
+Not covered: eventsource `_changes`, `_node`/config, search, proxy auth,
+multipart `_bulk_get`, and `open_revs` on GET document (it changes the
+response shape; use `_bulk_get`).
 
 Every change here should come with a scenario in
 `couchdb-sdk-generator/conformance/specs` so all SDKs are tested against it.
