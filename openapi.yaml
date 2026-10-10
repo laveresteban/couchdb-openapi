@@ -1409,9 +1409,12 @@ components:
               session_id: { type: string }
               start_time: { type: string }
               end_time: { type: string }
-              start_last_seq: { type: string }
-              end_last_seq: { type: string }
-              recorded_seq: { type: string }
+              start_last_seq:
+                description: Sequence; a number or a string depending on server version
+              end_last_seq:
+                description: Sequence; a number or a string depending on server version
+              recorded_seq:
+                description: Sequence; a number or a string depending on server version
               missing_checked: { type: integer }
               missing_found: { type: integer }
               docs_read: { type: integer }
