@@ -567,6 +567,10 @@ paths:
         - name: latest
           in: query
           schema: { type: boolean, default: false }
+        - name: attachments
+          in: query
+          description: Include attachment content as base64 `data`. With `atts_since`, only attachments newer than those revisions are sent; the rest come back as stubs.
+          schema: { type: boolean, default: false }
       requestBody:
         required: true
         content:
