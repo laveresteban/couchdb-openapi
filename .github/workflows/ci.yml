@@ -29,7 +29,7 @@ jobs:
       - uses: actions/checkout@v7
         with: { fetch-depth: 0 }
       - run: git show origin/${{ github.base_ref }}:openapi.yaml > base.yaml
-      - uses: oasdiff/oasdiff-action/breaking@v0.1.18
+      - uses: oasdiff/oasdiff-action/breaking@v0.1.20
         with:
           base: base.yaml
           revision: openapi.yaml
