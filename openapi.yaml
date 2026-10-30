@@ -4,7 +4,7 @@ info:
   description: |
     OpenAPI description of the Apache CouchDB 3.x HTTP API.
     This is the single source of truth for all generated CouchDB SDKs.
-  version: 0.7.0
+  version: 0.8.0
   license:
     name: Apache-2.0
     url: https://www.apache.org/licenses/LICENSE-2.0
@@ -880,6 +880,36 @@ paths:
     parameters:
       - { $ref: "#/components/parameters/Db" }
       - { $ref: "#/components/parameters/Partition" }
+    get:
+      tags: [partitions]
+      operationId: getPartitionAllDocs
+      summary: Query all documents in one partition (key range in the query string)
+      parameters:
+        - { $ref: "#/components/parameters/IncludeDocs" }
+        - { $ref: "#/components/parameters/JsonKey" }
+        - { $ref: "#/components/parameters/JsonKeys" }
+        - { $ref: "#/components/parameters/JsonStartKey" }
+        - { $ref: "#/components/parameters/JsonEndKey" }
+        - { $ref: "#/components/parameters/InclusiveEnd" }
+        - { $ref: "#/components/parameters/Limit" }
+        - { $ref: "#/components/parameters/Skip" }
+        - { $ref: "#/components/parameters/Descending" }
+        - name: conflicts
+          in: query
+          schema: { type: boolean, default: false }
+        - name: update_seq
+          in: query
+          schema: { type: boolean, default: false }
+      responses:
+        "200":
+          description: Rows
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/AllDocsResult" }
+        "400": { $ref: "#/components/responses/Error" }
+        "401": { $ref: "#/components/responses/Error" }
+        "403": { $ref: "#/components/responses/Error" }
+        "404": { $ref: "#/components/responses/Error" }
     post:
       tags: [partitions]
       operationId: postPartitionAllDocs
@@ -1263,6 +1293,213 @@ paths:
         "401": { $ref: "#/components/responses/Error" }
         "403": { $ref: "#/components/responses/Error" }
 
+  /{db}/_index/_design/{ddoc}/{type}/{name}:
+    parameters:
+      - { $ref: "#/components/parameters/Db" }
+      - { $ref: "#/components/parameters/Ddoc" }
+      - name: type
+        in: path
+        required: true
+        description: Index type, `json` or `text`
+        schema: { type: string }
+      - name: name
+        in: path
+        required: true
+        description: Index name
+        schema: { type: string }
+    delete:
+      tags: [query]
+      operationId: deleteIndex
+      summary: Delete a Mango index
+      responses:
+        "200":
+          description: Index deleted
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Ok" }
+        "400": { $ref: "#/components/responses/Error" }
+        "401": { $ref: "#/components/responses/Error" }
+        "403": { $ref: "#/components/responses/Error" }
+        "404": { $ref: "#/components/responses/Error" }
+
+  /{db}/_partition/{partition}:
+    parameters:
+      - { $ref: "#/components/parameters/Db" }
+      - { $ref: "#/components/parameters/Partition" }
+    get:
+      tags: [partitions]
+      operationId: getPartitionInformation
+      summary: Partition statistics
+      responses:
+        "200":
+          description: Partition information
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/PartitionInformation" }
+        "401": { $ref: "#/components/responses/Error" }
+        "403": { $ref: "#/components/responses/Error" }
+
+  /{db}/_partition/{partition}/_design/{ddoc}/_view/{view}:
+    parameters:
+      - { $ref: "#/components/parameters/Db" }
+      - { $ref: "#/components/parameters/Partition" }
+      - { $ref: "#/components/parameters/Ddoc" }
+      - name: view
+        in: path
+        required: true
+        schema: { type: string }
+    get:
+      tags: [partitions]
+      operationId: getPartitionView
+      summary: Query a MapReduce view within one partition (keys in the query string)
+      parameters:
+        - { $ref: "#/components/parameters/IncludeDocs" }
+        - { $ref: "#/components/parameters/JsonKey" }
+        - { $ref: "#/components/parameters/JsonKeys" }
+        - { $ref: "#/components/parameters/JsonStartKey" }
+        - { $ref: "#/components/parameters/JsonEndKey" }
+        - { $ref: "#/components/parameters/InclusiveEnd" }
+        - { $ref: "#/components/parameters/Limit" }
+        - { $ref: "#/components/parameters/Skip" }
+        - { $ref: "#/components/parameters/Descending" }
+        - name: reduce
+          in: query
+          schema: { type: boolean }
+        - name: group
+          in: query
+          schema: { type: boolean }
+        - name: group_level
+          in: query
+          schema: { type: integer, minimum: 0 }
+        - name: update
+          in: query
+          schema: { type: string, enum: ["true", "false", lazy] }
+        - name: stable
+          in: query
+          schema: { type: boolean }
+        - name: update_seq
+          in: query
+          schema: { type: boolean }
+      responses:
+        "200":
+          description: View rows
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/ViewResult" }
+        "400": { $ref: "#/components/responses/Error" }
+        "401": { $ref: "#/components/responses/Error" }
+        "403": { $ref: "#/components/responses/Error" }
+        "404": { $ref: "#/components/responses/Error" }
+    post:
+      tags: [partitions]
+      operationId: postPartitionView
+      summary: Query a MapReduce view within one partition
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/ViewQuery" }
+      responses:
+        "200":
+          description: View rows
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/ViewResult" }
+        "400": { $ref: "#/components/responses/Error" }
+        "401": { $ref: "#/components/responses/Error" }
+        "403": { $ref: "#/components/responses/Error" }
+        "404": { $ref: "#/components/responses/Error" }
+
+  /{db}/_partition/{partition}/_explain:
+    parameters:
+      - { $ref: "#/components/parameters/Db" }
+      - { $ref: "#/components/parameters/Partition" }
+    post:
+      tags: [partitions]
+      operationId: postPartitionExplain
+      summary: Show which index a Mango query would use within one partition
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/FindQuery" }
+      responses:
+        "200":
+          description: Query plan
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/ExplainResult" }
+        "400": { $ref: "#/components/responses/Error" }
+        "401": { $ref: "#/components/responses/Error" }
+        "403": { $ref: "#/components/responses/Error" }
+
+  /{db}/_design/{ddoc}/_info:
+    parameters:
+      - { $ref: "#/components/parameters/Db" }
+      - { $ref: "#/components/parameters/Ddoc" }
+    get:
+      tags: [design-documents]
+      operationId: getDesignDocumentInfo
+      summary: View index information for a design document
+      responses:
+        "200":
+          description: Index information
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/DesignDocumentInfo" }
+        "401": { $ref: "#/components/responses/Error" }
+        "403": { $ref: "#/components/responses/Error" }
+        "404": { $ref: "#/components/responses/Error" }
+
+  /{db}/_shards:
+    parameters:
+      - { $ref: "#/components/parameters/Db" }
+    get:
+      tags: [databases]
+      operationId: getShards
+      summary: Shard ranges and the nodes holding them
+      responses:
+        "200":
+          description: Shard map
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/ShardsResult" }
+        "400": { $ref: "#/components/responses/Error" }
+        "401": { $ref: "#/components/responses/Error" }
+        "403": { $ref: "#/components/responses/Error" }
+
+  /{db}/_shards/{docid}:
+    parameters:
+      - { $ref: "#/components/parameters/Db" }
+      - { $ref: "#/components/parameters/AttDocId" }
+    get:
+      tags: [databases]
+      operationId: getDocumentShard
+      summary: The shard that stores a document
+      responses:
+        "200":
+          description: Shard range and nodes
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/ShardsDocResult" }
+        "401": { $ref: "#/components/responses/Error" }
+        "403": { $ref: "#/components/responses/Error" }
+        "404": { $ref: "#/components/responses/Error" }
+
+  /_membership:
+    get:
+      tags: [server]
+      operationId: getMembership
+      summary: Cluster membership
+      responses:
+        "200":
+          description: Nodes
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/MembershipResult" }
+        "401": { $ref: "#/components/responses/Error" }
+        "403": { $ref: "#/components/responses/Error" }
+
 components:
   securitySchemes:
     basicAuth:
@@ -1598,6 +1835,27 @@ components:
           items: { type: string }
         bookmark: { type: string }
         execution_stats: { type: boolean }
+        conflicts:
+          type: boolean
+          default: false
+          description: Include conflicted documents.
+        r:
+          type: integer
+          minimum: 1
+          default: 1
+          description: Read quorum. Higher values read each document from more replicas.
+        update:
+          type: boolean
+          default: true
+          description: Update the index before answering. `false` returns possibly stale results.
+        stable:
+          type: boolean
+          default: false
+          description: Answer from a stable set of shards.
+        allow_fallback:
+          type: boolean
+          default: true
+          description: Allow CouchDB to fall back to another index when `use_index` can't serve the query. `false` returns an error instead.
 
     FindResult:
       type: object
@@ -1958,6 +2216,78 @@ components:
         skip: { type: integer }
         fields:
           description: '`"all_fields"` or a list of field names'
+
+    PartitionInformation:
+      type: object
+      required: [db_name, partition]
+      properties:
+        db_name: { type: string }
+        partition: { type: string }
+        doc_count: { type: integer }
+        doc_del_count: { type: integer }
+        sizes:
+          type: object
+          properties:
+            active: { type: integer }
+            external: { type: integer }
+
+    DesignDocumentInfo:
+      type: object
+      properties:
+        name: { type: string }
+        view_index:
+          type: object
+          description: |
+            Also carries `update_seq`, which CouchDB documents as a number or
+            a string depending on version, so it is left untyped here.
+          additionalProperties: true
+          properties:
+            compact_running: { type: boolean }
+            language: { type: string }
+            purge_seq: { type: integer }
+            signature: { type: string }
+            updater_running: { type: boolean }
+            waiting_clients: { type: integer }
+            waiting_commit: { type: boolean }
+            sizes:
+              type: object
+              description: Bytes. The CouchDB docs list `file`; their example shows `disk`.
+              properties:
+                active: { type: integer }
+                external: { type: integer }
+                file: { type: integer }
+                disk: { type: integer }
+
+    ShardsResult:
+      type: object
+      required: [shards]
+      properties:
+        shards:
+          type: object
+          description: Shard range such as `00000000-1fffffff`, mapped to the nodes holding it.
+          additionalProperties:
+            type: array
+            items: { type: string }
+
+    ShardsDocResult:
+      type: object
+      required: [range, nodes]
+      properties:
+        range: { type: string }
+        nodes:
+          type: array
+          items: { type: string }
+
+    MembershipResult:
+      type: object
+      required: [all_nodes, cluster_nodes]
+      properties:
+        all_nodes:
+          type: array
+          items: { type: string }
+        cluster_nodes:
+          type: array
+          items: { type: string }
 
     ActiveTask:
       type: object
