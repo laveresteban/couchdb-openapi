@@ -1,7 +1,7 @@
 # CLAUDE.md — couchdb-openapi
 
 OpenAPI 3.0.3 description of the CouchDB 3.x HTTP API (`openapi.yaml`).
-Source of truth for every SDK. Current version: **0.7.0**.
+Source of truth for every SDK. Current version: **0.8.0**.
 
 Pipeline: tag `vX.Y.Z` here → `release.yml` sends `spec-released` →
 couchdb-sdk-generator regenerates SDKs and opens PRs. See the generator's
@@ -28,6 +28,10 @@ CI also runs an `oasdiff` breaking-change check against the PR base.
 
 ## Fixes still open
 
+Done in 0.8.0: Mango `conflicts`/`r`/`update`/`stable`/`allow_fallback`, `DELETE _index`,
+partition info/views/`_explain` and GET `_all_docs`, `_design/{ddoc}/_info`, `_shards`,
+`_membership`.
+
 Done in 0.6.0/0.7.0: system db names in the `Db` pattern, 4xx responses,
 `ViewQuery`/`DesignDocument`/`ReplicationResult` fields, attachments accept
 any content type (`*/*` added next to `application/octet-stream`, so not
@@ -49,5 +53,8 @@ pattern), `oasdiff` pinned.
 
 - `_bulk_get` multipart response (streams attachments instead of base64).
 - `open_revs` on GET document, as its own path or with `Accept: application/json`.
-- `_node/{node}/_config`, `_membership`, `_cluster_setup`, search indexes.
+- `_node/{node}/_config`, `_cluster_setup`, search indexes.
+- `/queries` batch endpoints (`_all_docs`, `_view`, `_design_docs`), `_replicator` docs,
+  `_scheduler/jobs/{id}`.
+- `use_index` as a string as well as an array (needs a generator-safe schema).
 - Proxy authentication headers (`X-Auth-CouchDB-*`).
